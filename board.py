@@ -3,7 +3,7 @@ from solver import Solution
 
 
 class Board:
-    def __init__(self, connections, cells, rules, starts, vertices=None):
+    def __init__(self, vertices, connections, cells, rules, starts, ):
         self.cells = cells
         self.connections = connections
         self.rules = rules
