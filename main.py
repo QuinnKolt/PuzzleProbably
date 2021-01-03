@@ -4,6 +4,8 @@ from random import random
 from rules import *
 from playsound import playsound
 from threading import Thread
+from board import Board
+from solver import Solution
 
 HEI = 7
 WID = 5
@@ -14,7 +16,7 @@ PLAYING = "PLAYING"
 DESIGNING = "DESIGNING"
 
 # Start the app in the design state
-CURRENT_STATE = DESIGNING
+CURRENT_STATE = PLAYING
 
 
 class GameApp(tk.Frame):
@@ -49,10 +51,8 @@ class GameApp(tk.Frame):
 
         self.rule_board = RuleBoard(self, rule_texts)
 
-        
-        self.board = self.board_class(domain, app=self, wr=(WID, HEI),
-                                 cell_size=CELL, start_lst=[(0, 0), (3, 5)],
-                                 rules=rules)
+        self.board = self.board_class(board=Board(*domain, rules, [(0, 0), (3, 5)]), app=self, wr=(WID, HEI),
+                                 cell_size=CELL)
 
         self.level += 1
 
@@ -71,23 +71,6 @@ class GameApp(tk.Frame):
 
     def design(self):
         self.board = DesignerBoard((WID, HEI), self)
-
-
-class Domain:
-    def __init__(self, connections, cells):
-        self.cells = cells
-        self.connections = connections
-
-    def __contains__(self, item):
-        return item in self.connections
-
-    def __iter__(self):
-        return iter(self.connections)
-
-
-# Creates an (n-1)x(m-1) grid of cells
-def RectangularCellGrid(n, m):
-    return [(i, j) for i in range(n-1) for j in range(m-1)]
 
 
 class RuleBoard(tk.Canvas):
@@ -172,16 +155,14 @@ class DesignerBoard(tk.Canvas):
 
 
 class PlayerBoard(tk.Canvas):
-    def __init__(self, domain, wr, start_lst, app: GameApp, rules=(), cell_size=64):
+    def __init__(self, board, wr, app: GameApp, cell_size=64):
         super().__init__(app.master, width=wr[0]*cell_size, height=wr[1]*cell_size)
         self.cell_size = cell_size
         self.connections = []
         self.visual_connections = []
         self.connections_stack = [[]]
         self.visited = []
-        self.start_lst = start_lst
-        self.domain = domain
-        self.rules = rules
+        self.board = board
 
         self.app = app
         self.wr = wr
@@ -191,8 +172,8 @@ class PlayerBoard(tk.Canvas):
         self.draw()
         self.bindings = {}
         self.appbindings = {}
-        if len(start_lst) == 1:
-            self.start = start_lst[0]
+        if len(self.board.starts) == 1:
+            self.start = self.board.starts[0]
             self.cur = self.start
             self.line_draw_bindings()
             self.sshape = self.create_oval((self.start[0] + 0.5)*64 - 5, (self.start[1] + 0.5)*64 - 5,
@@ -204,21 +185,21 @@ class PlayerBoard(tk.Canvas):
         self.place(relx=0.25, rely=0.5, anchor=tk.CENTER)
 
     def draw_grid(self):
-        for cell in self.domain.cells:
+        for cell in self.board.cells:
             self.create_rectangle((cell[0] + 0.5)*self.cell_size, (cell[1] + 0.5)*self.cell_size,
                                   (cell[0] + 1.5)*self.cell_size, (cell[1] + 1.5)*self.cell_size,
                                   fill="gray93", outline="light grey", dash=(4, 4), width=2)
-        for segment in self.domain:
+        for segment in self.board.connections:
             self.create_line((segment[0][0] + 0.5) * self.cell_size, (segment[0][1] + 0.5) * self.cell_size,
                              (segment[1][0] + 0.5) * self.cell_size, (segment[1][1] + 0.5) * self.cell_size,
                              fill="gainsboro", width=5)
-        for s in self.start_lst:
+        for s in self.board.starts:
             self.create_oval((s[0] + 0.5)*64 - 5, (s[1] + 0.5)*64 - 5,
                              (s[0] + 0.5)*64 + 5, (s[1] + 0.5)*64 + 5,
                               fill="white", outline="black")
 
     def choose_start(self, e):
-        for s in self.start_lst:
+        for s in self.board.starts:
             if self.dist_real_to_coord((e.x, e.y), s) < self.cell_size/2:
                 self.start = s
                 self.cur = self.start
@@ -227,19 +208,12 @@ class PlayerBoard(tk.Canvas):
                                                (self.start[0] + 0.5)*64 + 5, (self.start[1] + 0.5)*64 + 5,
                                                fill="black", outline="black")
                 self.line_draw_bindings()
+                Thread(target=lambda: playsound("start.wav")).start()
                 break
-        Thread(target=lambda: playsound("start.wav")).start()
 
     def draw_objects(self):
-        for rule in self.rules:
+        for rule in self.board.rules:
             rule.draw(self)
-
-    def satisfied(self):
-        for rule in self.rules:
-            if not rule.is_satisfied(self):
-                return False
-
-        return True
 
     def unbindAll(self):
         for key in self.bindings.keys():
@@ -252,8 +226,8 @@ class PlayerBoard(tk.Canvas):
     def show_succ_err(self):
         errcls = set()
         succls = set()
-        for rule in self.rules:
-            if rule.is_satisfied(self):
+        for rule in self.board.rules:
+            if rule.is_satisfied(Solution(self.visited, self.connections, self.cur, self.start), self.board):
                 rule.success(self)
                 if isinstance(rule, TextRule) and rule not in errcls:
                     succls.add(rule)
@@ -275,7 +249,7 @@ class PlayerBoard(tk.Canvas):
 
     def unshow_succ_err(self):
         cls = set()
-        for rule in self.rules:
+        for rule in self.board.rules:
             rule.normal(self)
             if isinstance(rule, TextRule):
                 cls.add(rule)
@@ -347,7 +321,7 @@ class PlayerBoard(tk.Canvas):
         self.bindings['<ButtonRelease-3>'] = self.bind('<ButtonRelease-3>', self.update_to_visual, add='+')
         self.bindings['<B3-Motion>'] = self.bind('<B3-Motion>', self.show_remove_line, add='+')
         self.bindings['<ButtonRelease-2>'] = self.bind('<ButtonRelease-2>', self.undo)
-        self.bindings['<Double-Button-1>'] = self.bind('<Double-Button-1>', lambda e: self.win() if self.satisfied() else self.not_win())
+        self.bindings['<Double-Button-1>'] = self.bind('<Double-Button-1>', lambda e: self.win() if self.board.satisfied(self.visited, self.connections, self.cur, self.start) else self.not_win())
 
         self.appbindings['<Key>'] = self.master.bind('<Key>', self.change, add='+')
 
@@ -362,7 +336,7 @@ class PlayerBoard(tk.Canvas):
 
     def is_valid(self, *connections):
         for connection in connections:
-            if connection not in self.domain and (connection[1], connection[0]) not in self.domain:
+            if connection not in self.board.connections and (connection[1], connection[0]) not in self.board.connections:
                 return False
         return True
 
@@ -465,13 +439,13 @@ class PlayerBoard(tk.Canvas):
         elif e.keysym == "BackSpace":
             self.undo(e)
         elif e.keysym == "Return":
-            if self.satisfied():
+            if self.board.satisfied(self.visited, self.connections, self.cur, self.start):
                 self.win()
                 return
             else:
                 self.not_win()
                 return
-        elif e.keysym == "Escape" and len(self.start_lst) != 1:
+        elif e.keysym == "Escape" and len(self.board.starts) != 1:
             self.visual_connections = []
             self.visited = []
             self.connections = []
@@ -507,47 +481,49 @@ class PlayerBoard(tk.Canvas):
         return math.sqrt((coord1[0] - (coord2[0] + 0.5) * self.cell_size) ** 2 +
                          (coord1[1] - (coord2[1] + 0.5) * self.cell_size) ** 2)
 
-    def cell_rule_at(self, pos):
-        for obj in self.rules:
-            if isinstance(obj, CellRule) and obj.pos == pos:
-                return obj
-        return None
-
-    def vertex_rule_at(self, pos):
-        for obj in self.rules:
-            if isinstance(obj, VertexRule) and obj.pos == pos:
-                return obj
-        return None
-
-    def edge_rule_at(self, p, q):
-        for obj in self.rules:
-            if isinstance(obj, EdgeRule) and (obj.p == p and obj.q == q) or (obj.p == q and obj.q == p):
-                return obj
-        return None
-
 
 def basic_domain(n, m):
-    domain = []
+    vertices = []
+    edges = []
+    cells = []
+    vertices.append((n+1, m+1))
     for i in range(n):
+        vertices.append((i, m+1))
         for j in range(m):
+            if i == 0:
+                vertices.append((n+1, j))
+            cells.append((i, j))
+            vertices.append((i, j))
             if i != n-1:
-                domain.append(((i, j), (i+1, j)))
+                edges.append(((i, j), (i+1, j)))
             if j != m-1:
-                domain.append(((i, j), (i, j+1)))
+                edges.append(((i, j), (i, j+1)))
 
-    return Domain(domain, RectangularCellGrid(n, m))
+    return vertices, edges, cells
+
+
+def collect_vertices_from_edges(edges):
+    vertices = set()
+    for edge in edges:
+        vertices.add(edge[0])
+        vertices.add(edge[1])
+    return vertices
 
 
 def random_domain_path(n, m, path, likelihood=.9):
-    domain = list(path)
+    edges = [*path]
+    cells = []
     for i in range(n):
         for j in range(m):
-            if i != n-1 and random() < likelihood:
-                domain.append(((i, j), (i+1, j)))
-            if j != m-1 and random() < likelihood:
-                domain.append(((i, j), (i, j+1)))
+            cells.append((i, j))
+            if i != n-1:
+                if random() <= likelihood and ((i, j), (i+1, j)) not in path:
+                    edges.append(((i, j), (i+1, j)))
+            if j != m-1:
+                if random() <= likelihood and ((i, j), (i, j+1)) not in path:
+                    edges.append(((i, j), (i, j+1)))
 
-    return Domain(domain, RectangularCellGrid(n, m))
+    return collect_vertices_from_edges(edges), edges, cells
 
 
 def bounds(canvas, item):

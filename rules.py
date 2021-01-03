@@ -1,5 +1,4 @@
 from math import *
-from main import bounds
 
 
 
@@ -7,7 +6,7 @@ class GameRule:
     def __init__(self):
         self.shapes = []
 
-    def is_satisfied(self, board):
+    def is_satisfied(self, solution, board):
         return True
 
     def error(self, board):
@@ -51,29 +50,29 @@ class TextRule(GameRule):
         self.text = text
         self.rule = rule
 
-    def is_satisfied(self, board):
-        return self.rule(board)
+    def is_satisfied(self, solution, board):
+        return self.rule(solution, board)
 
 
 def EdgesLessThanRule(n):
     return TextRule("Complete the board in less than " + str(n) + " connections",
-                    lambda board: len(board.connections) < n)
+                    lambda solution, board: len(solution.connections) < n)
 
 
 def EdgesGreaterThanRule(n):
     return TextRule("Complete the board in more than " + str(n) + " connections",
-                    lambda board: len(board.connections) > n)
+                    lambda solution, board: len(solution.connections) > n)
 
 
 def EdgesExactlyRule(n):
     return TextRule("Complete the board in exactly " + str(n) + " connections",
-                    lambda board: len(board.connections) == n)
+                    lambda solution, board: len(solution.connections) == n)
 
 
 # TODO: Make this more general
 def EveryVertexRule():
     return TextRule("Visit every vertex on the board",
-                    lambda board: len(board.visited) == board.wr[0]*board.wr[1])
+                    lambda solution, board: len(solution.visited) == len(board.vertices))
 
 
 class IncludeVertex(VertexRule):
@@ -95,8 +94,8 @@ class IncludeVertex(VertexRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill="purple")
 
-    def is_satisfied(self, board):
-        return self.pos in board.visited
+    def is_satisfied(self, solution, board):
+        return self.pos in solution.visited
 
 
 class EdgeExactlyOneVertex(EdgeRule):
@@ -118,8 +117,8 @@ class EdgeExactlyOneVertex(EdgeRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill="purple")
 
-    def is_satisfied(self, board):
-        return (self.p in board.visited) != (self.q in board.visited)
+    def is_satisfied(self, solution, board):
+        return (self.p in solution.visited) != (self.q in solution.visited)
 
 
 class CellExactlyNVertex(CellRule):
@@ -211,11 +210,11 @@ class CellExactlyNVertex(CellRule):
             for shape in self.shapes:
                 board.itemconfig(shape, fill="purple")
 
-    def is_satisfied(self, board):
+    def is_satisfied(self, solution, board):
         return len([None for p in [(self.pos[0], self.pos[1]),
                           (self.pos[0], self.pos[1]+1),
                           (self.pos[0]+1, self.pos[1]),
-                          (self.pos[0]+1, self.pos[1]+1)] if p in board.visited]) == self.n
+                          (self.pos[0]+1, self.pos[1]+1)] if p in solution.visited]) == self.n
 
 
 class CellExactlyNEdge(CellRule):
@@ -271,7 +270,7 @@ class CellExactlyNEdge(CellRule):
         for shape in self.shapes:
             board.itemconfig(shape, fill="turquoise")
 
-    def is_satisfied(self, board):
+    def is_satisfied(self, solution, board):
         return len([None for p in [((self.pos[0], self.pos[1]), (self.pos[0]+1, self.pos[1])),
                                    ((self.pos[0]+1, self.pos[1]), (self.pos[0], self.pos[1])),
                                    ((self.pos[0], self.pos[1]), (self.pos[0], self.pos[1]+1)),
@@ -280,7 +279,7 @@ class CellExactlyNEdge(CellRule):
                                    ((self.pos[0]+1, self.pos[1]+1), (self.pos[0]+1, self.pos[1])),
                                    ((self.pos[0], self.pos[1]+1), (self.pos[0]+1, self.pos[1]+1)),
                                    ((self.pos[0]+1, self.pos[1]+1), (self.pos[0], self.pos[1]+1))]
-                    if p in board.connections]) == self.n
+                    if p in solution.connections]) == self.n
 
 
 class IncludeEdge(EdgeRule):
@@ -315,8 +314,8 @@ class IncludeEdge(EdgeRule):
         for shape in self.shapes:
             board.itemconfig(shape, fill="turquoise")
 
-    def is_satisfied(self, board):
-        return (self.p, self.q) in board.connections or (self.q, self.p) in board.connections
+    def is_satisfied(self, solution, board):
+        return (self.p, self.q) in solution.connections or (self.q, self.p) in solution.connections
 
 
 class FinishVertex(VertexRule):
@@ -338,42 +337,42 @@ class FinishVertex(VertexRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill="blue")
 
-    def is_satisfied(self, board):
-        return board.cur == self.pos
+    def is_satisfied(self, solution, board):
+        return solution.connections[-1][1] == self.pos
 
 
 def cell_in_domain(board, pos):
-    return pos in board.domain.cells
+    return pos in board.cells
 
 
 def vertex_in_domain(board, pos):
     pass
 
 
-def get_area(board, pos):
+def get_area(board, solution, pos):
     area = [pos]
     to_visit = [pos]
 
     while len(to_visit) != 0:
         cur = to_visit.pop()
 
-        if ((cur[0], cur[1]), (cur[0]+1, cur[1])) not in board.connections and \
-           ((cur[0]+1, cur[1]), (cur[0], cur[1])) not in board.connections and \
+        if ((cur[0], cur[1]), (cur[0]+1, cur[1])) not in solution.connections and \
+           ((cur[0]+1, cur[1]), (cur[0], cur[1])) not in solution.connections and \
            cell_in_domain(board, (cur[0], cur[1]-1)) and (cur[0], cur[1]-1) not in area:
             area.append((cur[0], cur[1]-1))
             to_visit.append((cur[0], cur[1]-1))
-        if ((cur[0], cur[1]), (cur[0], cur[1]+1)) not in board.connections and \
-           ((cur[0], cur[1]+1), (cur[0], cur[1])) not in board.connections and \
+        if ((cur[0], cur[1]), (cur[0], cur[1]+1)) not in solution.connections and \
+           ((cur[0], cur[1]+1), (cur[0], cur[1])) not in solution.connections and \
            cell_in_domain(board, (cur[0]-1, cur[1])) and (cur[0]-1, cur[1]) not in area:
             area.append((cur[0]-1, cur[1]))
             to_visit.append((cur[0]-1, cur[1]))
-        if ((cur[0]+1, cur[1]+1), (cur[0], cur[1]+1)) not in board.connections and \
-           ((cur[0], cur[1]+1), (cur[0]+1, cur[1]+1)) not in board.connections and \
+        if ((cur[0]+1, cur[1]+1), (cur[0], cur[1]+1)) not in solution.connections and \
+           ((cur[0], cur[1]+1), (cur[0]+1, cur[1]+1)) not in solution.connections and \
            cell_in_domain(board, (cur[0], cur[1]+1)) and (cur[0], cur[1]+1) not in area:
             area.append((cur[0], cur[1]+1))
             to_visit.append((cur[0], cur[1]+1))
-        if ((cur[0]+1, cur[1]+1), (cur[0]+1, cur[1])) not in board.connections and \
-           ((cur[0]+1, cur[1]), (cur[0]+1, cur[1]+1)) not in board.connections and \
+        if ((cur[0]+1, cur[1]+1), (cur[0]+1, cur[1])) not in solution.connections and \
+           ((cur[0]+1, cur[1]), (cur[0]+1, cur[1]+1)) not in solution.connections and \
            cell_in_domain(board, (cur[0]+1, cur[1])) and (cur[0]+1, cur[1]) not in area:
             area.append((cur[0]+1, cur[1]))
             to_visit.append((cur[0]+1, cur[1]))
@@ -399,9 +398,9 @@ class GroupCell(CellRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill=self.color)
 
-    def is_satisfied(self, board):
+    def is_satisfied(self, solution, board):
         cols = 0
-        for cell in get_area(board, self.pos):
+        for cell in get_area(board, solution, self.pos):
             obj = board.cell_rule_at(cell)
             if isinstance(obj, GroupCell) or isinstance(obj, ColorCell) and obj.color == self.color:
                 cols += 1
@@ -428,8 +427,8 @@ class ColorCell(CellRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill=self.color)
 
-    def is_satisfied(self, board):
-        for cell in get_area(board, self.pos):
+    def is_satisfied(self, solution, board):
+        for cell in get_area(board, solution, self.pos):
             obj = board.cell_rule_at(cell)
             if isinstance(obj, ColorCell) and obj.color != self.color:
                 return False
@@ -437,30 +436,29 @@ class ColorCell(CellRule):
         return True
 
 
-
 class ConstructedAreaRule(CellRule):
     def __init__(self, pos, grpkey=None):
         super().__init__(pos)
         self.grpkey = grpkey
 
-    def chomp(self, area):
+    def chomp(self, area, solution, board):
         yield area
 
-    def satisfied_rec(self, board, area, chomped, group_rules):
-        for a in self.chomp(chomped):
+    def satisfied_rec(self, board, solution, area, chomped, group_rules):
+        for a in self.chomp(chomped, solution, board):
             if len(group_rules) == 1 or group_rules[1].satisfied_rec(board, area, a, group_rules[1:]):
                 return True
         return False
 
-    def is_satisfied(self, board):
-        area = get_area(board, self.pos)
+    def is_satisfied(self, solution, board):
+        area = get_area(board, solution, self.pos)
         group_rules = [self]
         for cell in area:
             obj = board.cell_rule_at(cell)
             if isinstance(obj, ConstructedAreaRule) and obj.grpkey == self.grpkey and obj is not self:
                 group_rules.append(obj)
 
-        return self.satisfied_rec(board, area, area, group_rules)
+        return self.satisfied_rec(board, solution, area, area, group_rules)
 
 
 CLASS_RULES = {IncludeVertex: "Pass through the purple vertices if they are on a vertex",
