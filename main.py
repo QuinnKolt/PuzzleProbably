@@ -14,7 +14,7 @@ PLAYING = "PLAYING"
 DESIGNING = "DESIGNING"
 
 # Start the app in the design state
-CURRENT_STATE = DESIGNING
+CURRENT_STATE = PLAYING # DESIGNING
 
 
 class GameApp(tk.Frame):
