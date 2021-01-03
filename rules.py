@@ -6,7 +6,7 @@ class GameRule:
     def __init__(self):
         self.shapes = []
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return True
 
     def error(self, board):
@@ -21,7 +21,7 @@ class GameRule:
         for shape in self.shapes:
             board.itemconfig(shape, fill="black")
 
-    def draw(self, board):
+    def draw(self, state):
         pass
 
 
@@ -50,7 +50,7 @@ class TextRule(GameRule):
         self.text = text
         self.rule = rule
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return self.rule(solution, board)
 
 
@@ -79,10 +79,10 @@ class IncludeVertex(VertexRule):
     def __init__(self, pos):
         super().__init__(pos)
 
-    def draw(self, board):
-        self.shapes = [board.create_oval(
-            (self.pos[0] + 7/16)*board.cell_size, (self.pos[1] + 7/16)*board.cell_size,
-            (self.pos[0] + 9/16)*board.cell_size, (self.pos[1] + 9/16)*board.cell_size,
+    def draw(self, state):
+        self.shapes = [state.create_oval(
+            (self.pos[0] + 7/16)*state.app.cell_size, (self.pos[1] + 7/16)*state.app.cell_size,
+            (self.pos[0] + 9/16)*state.app.cell_size, (self.pos[1] + 9/16)*state.app.cell_size,
             fill="purple")]
 
     def success(self, board):
@@ -94,7 +94,7 @@ class IncludeVertex(VertexRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill="purple")
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return self.pos in solution.visited
 
 
@@ -102,10 +102,10 @@ class EdgeExactlyOneVertex(EdgeRule):
     def __init__(self, p, q):
         super().__init__(p, q)
 
-    def draw(self, board):
-        self.shapes = [board.create_oval(
-            ((self.p[0] + self.q[0])/2 + 7/16)*board.cell_size, ((self.p[1] + self.q[1])/2 + 7/16)*board.cell_size,
-            ((self.p[0] + self.q[0])/2 + 9/16)*board.cell_size, ((self.p[1] + self.q[1])/2 + 9/16)*board.cell_size,
+    def draw(self, state):
+        self.shapes = [state.create_oval(
+            ((self.p[0] + self.q[0])/2 + 7/16)*state.app.cell_size, ((self.p[1] + self.q[1])/2 + 7/16)*state.app.cell_size,
+            ((self.p[0] + self.q[0])/2 + 9/16)*state.app.cell_size, ((self.p[1] + self.q[1])/2 + 9/16)*state.app.cell_size,
             fill="purple")]
 
     def success(self, board):
@@ -117,7 +117,7 @@ class EdgeExactlyOneVertex(EdgeRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill="purple")
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return (self.p in solution.visited) != (self.q in solution.visited)
 
 
@@ -126,67 +126,67 @@ class CellExactlyNVertex(CellRule):
         super().__init__(pos)
         self.n = n
 
-    def draw(self, board):
+    def draw(self, state):
         if self.n == 0:
-            self.shapes = [board.create_oval((self.pos[0]+7/8)*board.cell_size,
-                           (self.pos[1]+7/8)*board.cell_size,
-                           (self.pos[0]+9/8)*board.cell_size,
-                           (self.pos[1]+9/8)*board.cell_size,
-                           outline="purple", fill=None, width=3)]
+            self.shapes = [state.create_oval((self.pos[0] + 7/8)*state.app.cell_size,
+                                             (self.pos[1]+7/8)*state.app.cell_size,
+                                             (self.pos[0]+9/8)*state.app.cell_size,
+                                             (self.pos[1]+9/8)*state.app.cell_size,
+                                             outline="purple", fill=None, width=3)]
         elif self.n == 1:
-            self.shapes = [board.create_oval((self.pos[0]+15/16)*board.cell_size,
-                           (self.pos[1]+15/16)*board.cell_size,
-                           (self.pos[0]+17/16)*board.cell_size,
-                           (self.pos[1]+17/16)*board.cell_size,
-                           fill="purple")]
+            self.shapes = [state.create_oval((self.pos[0] + 15/16)*state.app.cell_size,
+                                             (self.pos[1]+15/16)*state.app.cell_size,
+                                             (self.pos[0]+17/16)*state.app.cell_size,
+                                             (self.pos[1]+17/16)*state.app.cell_size,
+                                             fill="purple")]
         elif self.n == 2:
-            self.shapes = [board.create_oval((self.pos[0] + 13/16)*board.cell_size,
-                                             (self.pos[1] + 15/16)*board.cell_size,
-                                             (self.pos[0] + 15/16)*board.cell_size,
-                                             (self.pos[1] + 17/16)*board.cell_size,
+            self.shapes = [state.create_oval((self.pos[0] + 13/16)*state.app.cell_size,
+                                             (self.pos[1] + 15/16)*state.app.cell_size,
+                                             (self.pos[0] + 15/16)*state.app.cell_size,
+                                             (self.pos[1] + 17/16)*state.app.cell_size,
                                              fill="purple"),
-                           board.create_oval((self.pos[0] + 17/16)*board.cell_size,
-                                             (self.pos[1] + 15/16)*board.cell_size,
-                                             (self.pos[0] + 19/16)*board.cell_size,
-                                             (self.pos[1] + 17/16)*board.cell_size,
+                           state.create_oval((self.pos[0] + 17/16)*state.app.cell_size,
+                                             (self.pos[1] + 15/16)*state.app.cell_size,
+                                             (self.pos[0] + 19/16)*state.app.cell_size,
+                                             (self.pos[1] + 17/16)*state.app.cell_size,
                                              fill="purple")]
         elif self.n == 3:
-            self.shapes = [board.create_oval((self.pos[0] + 1 + 1/16*(3*sin(0)-1))*board.cell_size,
-                                             (self.pos[1] + 1 + 1/16*(3*cos(0)-1))*board.cell_size,
-                                             (self.pos[0] + 1 + 1/16*(3*sin(0) + 1))*board.cell_size,
-                                             (self.pos[1] + 1 + 1/16*(3*cos(0)+1))*board.cell_size,
+            self.shapes = [state.create_oval((self.pos[0] + 1 + 1/16*(3*sin(0) - 1))*state.app.cell_size,
+                                             (self.pos[1] + 1 + 1/16*(3*cos(0)-1))*state.app.cell_size,
+                                             (self.pos[0] + 1 + 1/16*(3*sin(0) + 1))*state.app.cell_size,
+                                             (self.pos[1] + 1 + 1/16*(3*cos(0)+1))*state.app.cell_size,
                                              fill="purple"),
-                           board.create_oval((self.pos[0] + 1 + 1/16*(3*sin(2*pi/3) - 1))*board.cell_size,
-                                             (self.pos[1] + 1 + 1/16*(3*cos(2*pi/3) - 1))*board.cell_size,
-                                             (self.pos[0] + 1 + 1/16*(3*sin(2*pi/3) + 1))*board.cell_size,
-                                             (self.pos[1] + 1 + 1/16*(3*cos(2*pi/3) + 1))*board.cell_size,
+                           state.create_oval((self.pos[0] + 1 + 1/16*(3*sin(2*pi/3) - 1))*state.app.cell_size,
+                                             (self.pos[1] + 1 + 1/16*(3*cos(2*pi/3) - 1))*state.app.cell_size,
+                                             (self.pos[0] + 1 + 1/16*(3*sin(2*pi/3) + 1))*state.app.cell_size,
+                                             (self.pos[1] + 1 + 1/16*(3*cos(2*pi/3) + 1))*state.app.cell_size,
                                              fill="purple"),
-                           board.create_oval((self.pos[0] + 1 + 1/16*(3*sin(4*pi/3) - 1))*board.cell_size,
-                                             (self.pos[1] + 1 + 1/16*(3*cos(4*pi/3) - 1))*board.cell_size,
-                                             (self.pos[0] + 1 + 1/16*(3*sin(4*pi/3) + 1))*board.cell_size,
-                                             (self.pos[1] + 1 + 1/16*(3*cos(4*pi/3) + 1))*board.cell_size,
+                           state.create_oval((self.pos[0] + 1 + 1/16*(3*sin(4*pi/3) - 1))*state.app.cell_size,
+                                             (self.pos[1] + 1 + 1/16*(3*cos(4*pi/3) - 1))*state.app.cell_size,
+                                             (self.pos[0] + 1 + 1/16*(3*sin(4*pi/3) + 1))*state.app.cell_size,
+                                             (self.pos[1] + 1 + 1/16*(3*cos(4*pi/3) + 1))*state.app.cell_size,
                                              fill="purple"),
                            ]
         elif self.n == 4:
-            self.shapes = [board.create_oval((self.pos[0] + 13/16)*board.cell_size,
-                                             (self.pos[1] + 13/16)*board.cell_size,
-                                             (self.pos[0] + 15/16)*board.cell_size,
-                                             (self.pos[1] + 15/16)*board.cell_size,
+            self.shapes = [state.create_oval((self.pos[0] + 13/16)*state.app.cell_size,
+                                             (self.pos[1] + 13/16)*state.app.cell_size,
+                                             (self.pos[0] + 15/16)*state.app.cell_size,
+                                             (self.pos[1] + 15/16)*state.app.cell_size,
                                              fill="purple"),
-                           board.create_oval((self.pos[0] + 13/16)*board.cell_size,
-                                             (self.pos[1] + 17/16)*board.cell_size,
-                                             (self.pos[0] + 15/16)*board.cell_size,
-                                             (self.pos[1] + 19/16)*board.cell_size,
+                           state.create_oval((self.pos[0] + 13/16)*state.app.cell_size,
+                                             (self.pos[1] + 17/16)*state.app.cell_size,
+                                             (self.pos[0] + 15/16)*state.app.cell_size,
+                                             (self.pos[1] + 19/16)*state.app.cell_size,
                                              fill="purple"),
-                           board.create_oval((self.pos[0] + 17/16)*board.cell_size,
-                                             (self.pos[1] + 13/16)*board.cell_size,
-                                             (self.pos[0] + 19/16)*board.cell_size,
-                                             (self.pos[1] + 15/16)*board.cell_size,
+                           state.create_oval((self.pos[0] + 17/16)*state.app.cell_size,
+                                             (self.pos[1] + 13/16)*state.app.cell_size,
+                                             (self.pos[0] + 19/16)*state.app.cell_size,
+                                             (self.pos[1] + 15/16)*state.app.cell_size,
                                              fill="purple"),
-                           board.create_oval((self.pos[0] + 17/16)*board.cell_size,
-                                             (self.pos[1] + 17/16)*board.cell_size,
-                                             (self.pos[0] + 19/16)*board.cell_size,
-                                             (self.pos[1] + 19/16)*board.cell_size,
+                           state.create_oval((self.pos[0] + 17/16)*state.app.cell_size,
+                                             (self.pos[1] + 17/16)*state.app.cell_size,
+                                             (self.pos[0] + 19/16)*state.app.cell_size,
+                                             (self.pos[1] + 19/16)*state.app.cell_size,
                                              fill="purple")]
 
     def error(self, board):
@@ -210,7 +210,7 @@ class CellExactlyNVertex(CellRule):
             for shape in self.shapes:
                 board.itemconfig(shape, fill="purple")
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return len([None for p in [(self.pos[0], self.pos[1]),
                           (self.pos[0], self.pos[1]+1),
                           (self.pos[0]+1, self.pos[1]),
@@ -222,39 +222,39 @@ class CellExactlyNEdge(CellRule):
         super().__init__(pos)
         self.n = n
 
-    def draw(self, board):
+    def draw(self, state):
         if self.n == 1:
-            self.shapes = [board.create_line((self.pos[0]+3/4)*board.cell_size,
-                           (self.pos[1]+3/4)*board.cell_size,
-                           (self.pos[0]+5/4)*board.cell_size,
-                           (self.pos[1]+5/4)*board.cell_size,
-                           fill="turquoise", width=3)]
+            self.shapes = [state.create_line((self.pos[0] + 3/4)*state.app.cell_size,
+                                             (self.pos[1]+3/4)*state.app.cell_size,
+                                             (self.pos[0]+5/4)*state.app.cell_size,
+                                             (self.pos[1]+5/4)*state.app.cell_size,
+                                             fill="turquoise", width=3)]
         elif self.n == 2:
-            self.shapes = [board.create_line((self.pos[0] + 1)*board.cell_size,
-                                             (self.pos[1] + 3/4)*board.cell_size,
-                                             (self.pos[0] + 3/4)*board.cell_size,
-                                             (self.pos[1] + 5/4)*board.cell_size,
+            self.shapes = [state.create_line((self.pos[0] + 1)*state.app.cell_size,
+                                             (self.pos[1] + 3/4)*state.app.cell_size,
+                                             (self.pos[0] + 3/4)*state.app.cell_size,
+                                             (self.pos[1] + 5/4)*state.app.cell_size,
                                              fill="turquoise", width=3),
-                           board.create_line((self.pos[0] + 1)*board.cell_size,
-                                             (self.pos[1] + 3/4)*board.cell_size,
-                                             (self.pos[0] + 5/4)*board.cell_size,
-                                             (self.pos[1] + 5/4)*board.cell_size,
+                           state.create_line((self.pos[0] + 1)*state.app.cell_size,
+                                             (self.pos[1] + 3/4)*state.app.cell_size,
+                                             (self.pos[0] + 5/4)*state.app.cell_size,
+                                             (self.pos[1] + 5/4)*state.app.cell_size,
                                              fill="turquoise", width=3)]
         elif self.n == 3:
-            self.shapes = [board.create_line((self.pos[0] + 1 + 1/3*sin(0))*board.cell_size,
-                                             (self.pos[1] + .95 + 1/3*cos(0))*board.cell_size,
-                                             (self.pos[0] + 1 + 1/3*sin(2*pi/3))*board.cell_size,
-                                             (self.pos[1] + .95 + 1/3*cos(2*pi/3))*board.cell_size,
+            self.shapes = [state.create_line((self.pos[0] + 1 + 1/3*sin(0))*state.app.cell_size,
+                                             (self.pos[1] + .95 + 1/3*cos(0))*state.app.cell_size,
+                                             (self.pos[0] + 1 + 1/3*sin(2*pi/3))*state.app.cell_size,
+                                             (self.pos[1] + .95 + 1/3*cos(2*pi/3))*state.app.cell_size,
                                              fill="turquoise", width=3),
-                           board.create_line((self.pos[0] + 1 + 1/3*sin(4*pi/3))*board.cell_size,
-                                             (self.pos[1] + .95 + 1/3*cos(4*pi/3))*board.cell_size,
-                                             (self.pos[0] + 1 + 1/3*sin(2*pi/3))*board.cell_size,
-                                             (self.pos[1] + .95 + 1/3*cos(2*pi/3))*board.cell_size,
+                           state.create_line((self.pos[0] + 1 + 1/3*sin(4*pi/3))*state.app.cell_size,
+                                             (self.pos[1] + .95 + 1/3*cos(4*pi/3))*state.app.cell_size,
+                                             (self.pos[0] + 1 + 1/3*sin(2*pi/3))*state.app.cell_size,
+                                             (self.pos[1] + .95 + 1/3*cos(2*pi/3))*state.app.cell_size,
                                              fill="turquoise", width=3),
-                           board.create_line((self.pos[0] + 1 + 1/3*sin(0))*board.cell_size,
-                                             (self.pos[1] + .95 + 1/3*cos(0))*board.cell_size,
-                                             (self.pos[0] + 1 + 1/3*sin(4*pi/3))*board.cell_size,
-                                             (self.pos[1] + .95 + 1/3*cos(4*pi/3))*board.cell_size,
+                           state.create_line((self.pos[0] + 1 + 1/3*sin(0))*state.app.cell_size,
+                                             (self.pos[1] + .95 + 1/3*cos(0))*state.app.cell_size,
+                                             (self.pos[0] + 1 + 1/3*sin(4*pi/3))*state.app.cell_size,
+                                             (self.pos[1] + .95 + 1/3*cos(4*pi/3))*state.app.cell_size,
                                              fill="turquoise", width=3),
                            ]
 
@@ -270,7 +270,7 @@ class CellExactlyNEdge(CellRule):
         for shape in self.shapes:
             board.itemconfig(shape, fill="turquoise")
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return len([None for p in [((self.pos[0], self.pos[1]), (self.pos[0]+1, self.pos[1])),
                                    ((self.pos[0]+1, self.pos[1]), (self.pos[0], self.pos[1])),
                                    ((self.pos[0], self.pos[1]), (self.pos[0], self.pos[1]+1)),
@@ -286,19 +286,19 @@ class IncludeEdge(EdgeRule):
     def __init__(self, p, q):
         super().__init__(p, q)
 
-    def draw(self, board):
+    def draw(self, state):
         if self.p[0] == self.q[0]:
-            self.shapes = [board.create_line((self.p[0] + 1/2)*board.cell_size,
-                                             (self.p[1] + 3/4)*board.cell_size,
-                                             (self.p[0] + 1/2)*board.cell_size,
-                                             (self.p[1] + 5/4)*board.cell_size,
+            self.shapes = [state.create_line((self.p[0] + 1/2)*state.app.cell_size,
+                                             (self.p[1] + 3/4)*state.app.cell_size,
+                                             (self.p[0] + 1/2)*state.app.cell_size,
+                                             (self.p[1] + 5/4)*state.app.cell_size,
                                              fill="turquoise", width=7),
                            ]
         else:
-            self.shapes = [board.create_line((self.p[0] + 3/4)*board.cell_size,
-                                             (self.p[1] + 1/2)*board.cell_size,
-                                             (self.p[0] + 5/4)*board.cell_size,
-                                             (self.p[1] + 1/2)*board.cell_size,
+            self.shapes = [state.create_line((self.p[0] + 3/4)*state.app.cell_size,
+                                             (self.p[1] + 1/2)*state.app.cell_size,
+                                             (self.p[0] + 5/4)*state.app.cell_size,
+                                             (self.p[1] + 1/2)*state.app.cell_size,
                                              fill="turquoise", width=7),
                            ]
 
@@ -314,7 +314,7 @@ class IncludeEdge(EdgeRule):
         for shape in self.shapes:
             board.itemconfig(shape, fill="turquoise")
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         return (self.p, self.q) in solution.connections or (self.q, self.p) in solution.connections
 
 
@@ -322,10 +322,10 @@ class FinishVertex(VertexRule):
     def __init__(self, pos):
         super().__init__(pos)
 
-    def draw(self, board):
-        self.shapes = [board.create_oval(
-            (self.pos[0] + 7/16)*board.cell_size, (self.pos[1] + 7/16)*board.cell_size,
-            (self.pos[0] + 9/16)*board.cell_size, (self.pos[1] + 9/16)*board.cell_size,
+    def draw(self, state):
+        self.shapes = [state.create_oval(
+            (self.pos[0] + 7/16)*state.app.cell_size, (self.pos[1] + 7/16)*state.app.cell_size,
+            (self.pos[0] + 9/16)*state.app.cell_size, (self.pos[1] + 9/16)*state.app.cell_size,
             fill="blue")]
 
     def success(self, board):
@@ -337,8 +337,8 @@ class FinishVertex(VertexRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill="blue")
 
-    def is_satisfied(self, solution, board):
-        return solution.connections[-1][1] == self.pos
+    def is_satisfied(self, board, solution):
+        return solution.cur == self.pos
 
 
 def cell_in_domain(board, pos):
@@ -386,8 +386,8 @@ class GroupCell(CellRule):
         self.n = n
         self.color = color
 
-    def draw(self, board):
-        self.shapes = [board.create_text((self.pos[0]+1)*board.cell_size, (self.pos[1]+1)*board.cell_size, fill=self.color, width=3, text=str(self.n), font="Times 20")]
+    def draw(self, state):
+        self.shapes = [state.create_text((self.pos[0] + 1)*state.app.cell_size, (self.pos[1] + 1)*state.app.cell_size, fill=self.color, width=3, text=str(self.n), font="Times 20")]
 
     def error(self, board):
         board.itemconfig(self.shapes[0], fill="red")
@@ -398,7 +398,7 @@ class GroupCell(CellRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill=self.color)
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         cols = 0
         for cell in get_area(board, solution, self.pos):
             obj = board.cell_rule_at(cell)
@@ -413,9 +413,9 @@ class ColorCell(CellRule):
         super().__init__(pos)
         self.color = color
 
-    def draw(self, board):
-        self.shapes = [board.create_rectangle((self.pos[0]+3/4)*board.cell_size, (self.pos[1]+3/4)*board.cell_size,
-                                              (self.pos[0]+5/4)*board.cell_size, (self.pos[1]+5/4)*board.cell_size,
+    def draw(self, state):
+        self.shapes = [state.create_rectangle((self.pos[0] + 3/4)*state.app.cell_size, (self.pos[1] + 3/4)*state.app.cell_size,
+                                              (self.pos[0]+5/4)*state.app.cell_size, (self.pos[1] + 5/4)*state.app.cell_size,
                                               fill=self.color, outline="")]
 
     def error(self, board):
@@ -427,7 +427,7 @@ class ColorCell(CellRule):
     def normal(self, board):
         board.itemconfig(self.shapes[0], fill=self.color)
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         for cell in get_area(board, solution, self.pos):
             obj = board.cell_rule_at(cell)
             if isinstance(obj, ColorCell) and obj.color != self.color:
@@ -450,7 +450,7 @@ class ConstructedAreaRule(CellRule):
                 return True
         return False
 
-    def is_satisfied(self, solution, board):
+    def is_satisfied(self, board, solution):
         area = get_area(board, solution, self.pos)
         group_rules = [self]
         for cell in area:
@@ -467,5 +467,5 @@ CLASS_RULES = {IncludeVertex: "Pass through the purple vertices if they are on a
                IncludeEdge: "Pass through cyan edges if they are on an edge",
                CellExactlyNEdge: "Pass through as equally many edges adjacent to cells as marked if marked with cyan lines",
                FinishVertex: "End at the blue vertex",
-               ColorCell: "Separate cells with different colored rectangles",
+               ColorCell: "Separate cells with different colored squares",
                GroupCell: "Include equally many colored cells as indicated by colored numbers (both squares and numbers count)"}
