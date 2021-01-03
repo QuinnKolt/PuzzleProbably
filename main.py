@@ -10,6 +10,13 @@ WID = 5
 CELL = 64
 
 
+PLAYING = "PLAYING"
+DESIGNING = "DESIGNING"
+
+# Start the app in the design state
+CURRENT_STATE = DESIGNING
+
+
 class GameApp(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
@@ -20,6 +27,9 @@ class GameApp(tk.Frame):
         self.rule_board = None
         self.buttons = []
         self.bindings = {}
+
+        # TODO this is an awful line of code
+        self.board_class = { PLAYING: PlayerBoard, DESIGNING: DesignerBoard }[CURRENT_STATE]
 
     def new_board(self):
         self.level_text.destroy()
@@ -39,7 +49,8 @@ class GameApp(tk.Frame):
 
         self.rule_board = RuleBoard(self, rule_texts)
 
-        self.board = PlayerBoard(domain, app=self, wr=(WID, HEI),
+        
+        self.board = self.board_class(domain, app=self, wr=(WID, HEI),
                                  cell_size=CELL, start_lst=[(0, 0), (3, 5)],
                                  rules=rules)
 
