@@ -1,6 +1,6 @@
 from main import *
 from bulletin import RuleBulletin
-
+import controls
 
 class PlayerCanvas(tk.Canvas):
     def __init__(self, board, wr, app: GameApp):
@@ -14,8 +14,7 @@ class PlayerCanvas(tk.Canvas):
         self.lines = []
         self.board.draw(self)
         self.draw()
-        self.bindings = {}
-        self.appbindings = {}
+        self.bindings = []
         self.rule_board = RuleBulletin(app, self.board.rules)
 
         if len(self.board.starts) == 1:
@@ -41,16 +40,13 @@ class PlayerCanvas(tk.Canvas):
                                                (self.path.start[0] + 0.5)*64 + 5, (self.path.start[1] + 0.5)*64 + 5,
                                                fill="black", outline="black")
                 self.line_draw_bindings()
-                Thread(target=lambda: playsound("res/start.wav")).start()
+                sound("res/softdot.wav")
                 break
 
     def unbindAll(self):
-        for key in self.bindings.keys():
-            self.unbind(key, self.bindings[key])
-        for key in self.appbindings:
-            self.master.unbind(key, self.appbindings[key])
-        self.appbindings = {}
-        self.bindings = {}
+        for binding in self.bindings:
+            binding.unbind()
+        self.bindings = []
 
     def show_succ_err(self):
         errcls = set()
@@ -104,7 +100,7 @@ class PlayerCanvas(tk.Canvas):
         for line in self.lines:
             self.itemconfig(line, fill="green")
         self.itemconfig(self.sshape, fill="green")
-        Thread(target=lambda: playsound("res/success.wav")).start()
+        sound("res/softsuccess.wav")
 
     def not_win(self):
 
@@ -113,7 +109,7 @@ class PlayerCanvas(tk.Canvas):
         self.flash(5)
         self.master.after(1000, self.un_not_win)
         self.unbindAll()
-        Thread(target=lambda: playsound("res/error.wav")).start()
+        sound("res/softerror.wav")
 
     def flash(self, n):
         if n == 0:
@@ -139,21 +135,41 @@ class PlayerCanvas(tk.Canvas):
         self.line_draw_bindings()
 
     def start_bindings(self):
-        self.bindings['<Button-1>'] = self.bind('<Button-1>', self.choose_start, add='+')
+        for binding in controls.START:
+            binding.bind(self.choose_start, self)
+            self.bindings.append(binding)
 
     def line_draw_bindings(self):
-        self.bindings['<Button-1>'] = self.bind('<Button-1>', self.show_add_line, add='+')
-        self.bindings['<ButtonRelease-1>'] = self.bind('<ButtonRelease-1>', self.update_to_visual, add='+')
-        self.bindings['<B1-Motion>'] = self.bind('<B1-Motion>', self.show_add_line, add='+')
-
-        self.bindings['<Button-3>'] = self.bind('<Button-3>', self.show_remove_line, add='+')
-        self.bindings['<ButtonRelease-3>'] = self.bind('<ButtonRelease-3>', self.update_to_visual, add='+')
-        self.bindings['<B3-Motion>'] = self.bind('<B3-Motion>', self.show_remove_line, add='+')
-        self.bindings['<ButtonRelease-2>'] = self.bind('<ButtonRelease-2>', self.undo)
-        self.bindings['<Double-Button-1>'] = self.bind('<Double-Button-1>', lambda e: self.win()
-                                                       if self.board.is_satisfied(self.path) else self.not_win())
-
-        self.appbindings['<Key>'] = self.master.bind('<Key>', self.change, add='+')
+        for binding in controls.FORWARD_VIS:
+            binding.bind(self.show_add_line, self)
+            self.bindings.append(binding)
+        for binding in controls.UPDATE:
+            binding.bind(self.update_to_visual, self)
+            self.bindings.append(binding)
+        for binding in controls.BACKWARD_VIS:
+            binding.bind(self.show_remove_line, self)
+            self.bindings.append(binding)
+        for binding in controls.UNDO:
+            binding.bind(self.undo, self)
+            self.bindings.append(binding)
+        for binding in controls.UP:
+            binding.bind(self.up, self)
+            self.bindings.append(binding)
+        for binding in controls.DOWN:
+            binding.bind(self.down, self)
+            self.bindings.append(binding)
+        for binding in controls.LEFT:
+            binding.bind(self.left, self)
+            self.bindings.append(binding)
+        for binding in controls.RIGHT:
+            binding.bind(self.right, self)
+            self.bindings.append(binding)
+        for binding in controls.COMPLETE:
+            binding.bind(self.complete, self)
+            self.bindings.append(binding)
+        for binding in controls.CLEAR:
+            binding.bind(self.clear, self)
+            self.bindings.append(binding)
 
     def draw(self):
         self.delete(*self.lines)
@@ -235,48 +251,52 @@ class PlayerCanvas(tk.Canvas):
             self.path.cur = self.path.start
             self.path.visited = []
 
-    def change(self, e):
-        if e.keysym == "Up" or e.keysym == "w":
-            if (self.path.cur[0], self.path.cur[1] - 1) not in self.path.visited and \
-               self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] - 1))):
-                self.visual_connections.append(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] - 1)))
-            elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                    ((self.path.cur[0], self.path.cur[1] - 1), (self.path.cur[0], self.path.cur[1])):
-                self.visual_connections = self.path.connections[:-1]
-        elif e.keysym == "Down" or e.keysym == "s":
-            if (self.path.cur[0], self.path.cur[1] + 1) not in self.path.visited and \
-               self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] + 1))):
-                self.visual_connections.append(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] + 1)))
-            elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                    ((self.path.cur[0], self.path.cur[1] + 1), (self.path.cur[0], self.path.cur[1])):
-                self.visual_connections = self.path.connections[:-1]
-        elif e.keysym == "Left" or e.keysym == "a":
-            if (self.path.cur[0] - 1, self.path.cur[1]) not in self.path.visited and self.path.cur[0] > 0 and \
-               self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] - 1, self.path.cur[1]))):
-                self.visual_connections.append(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] - 1, self.path.cur[1])))
-            elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                    ((self.path.cur[0] - 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1])):
-                self.visual_connections = self.path.connections[:-1]
-        elif e.keysym == "Right" or e.keysym == "d":
-            if (self.path.cur[0] + 1, self.path.cur[1]) not in self.path.visited and self.path.cur[0] < self.wr[0]-1 and \
-               self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1]))):
-                self.visual_connections.append(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1])))
-            elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                    ((self.path.cur[0] + 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1])):
-                self.visual_connections = self.path.connections[:-1]
-        elif e.keysym == "space":
-            self.visual_connections = []
-        elif e.keysym == "BackSpace":
-            self.undo(e)
-        elif e.keysym == "Return":
-            if self.board.is_satisfied(self.path):
-                self.win()
-                return
-            else:
-                self.not_win()
-                return
-        elif e.keysym == "Escape" and len(self.board.starts) != 1:
-            self.visual_connections = []
+    def up(self, e):
+        if (self.path.cur[0], self.path.cur[1] - 1) not in self.path.visited and \
+                self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] - 1))):
+            self.visual_connections.append(
+                ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] - 1)))
+        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
+                ((self.path.cur[0], self.path.cur[1] - 1), (self.path.cur[0], self.path.cur[1])):
+            self.visual_connections = self.path.connections[:-1]
+        self.draw()
+        self.update_to_visual(None)
+
+    def down(self, e):
+        if (self.path.cur[0], self.path.cur[1] + 1) not in self.path.visited and \
+                self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] + 1))):
+            self.visual_connections.append(
+                ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] + 1)))
+        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
+                ((self.path.cur[0], self.path.cur[1] + 1), (self.path.cur[0], self.path.cur[1])):
+            self.visual_connections = self.path.connections[:-1]
+        self.draw()
+        self.update_to_visual(None)
+
+    def left(self, e):
+        if (self.path.cur[0] - 1, self.path.cur[1]) not in self.path.visited and self.path.cur[0] > 0 and \
+                self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] - 1, self.path.cur[1]))):
+            self.visual_connections.append(
+                ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] - 1, self.path.cur[1])))
+        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
+                ((self.path.cur[0] - 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1])):
+            self.visual_connections = self.path.connections[:-1]
+        self.draw()
+        self.update_to_visual(None)
+
+    def right(self, e):
+        if (self.path.cur[0] + 1, self.path.cur[1]) not in self.path.visited and self.path.cur[0] < self.wr[0] - 1 and \
+                self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1]))):
+            self.visual_connections.append(
+                ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1])))
+        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
+                ((self.path.cur[0] + 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1])):
+            self.visual_connections = self.path.connections[:-1]
+        self.draw()
+        self.update_to_visual(None)
+
+    def clear(self, e):
+        if len(self.board.starts) != 1:
             self.path.visited = []
             self.path.connections = []
             self.connections_stack = [[]]
@@ -284,16 +304,22 @@ class PlayerCanvas(tk.Canvas):
             self.draw()
             self.unbindAll()
             self.start_bindings()
-        else:
-            print(e.keysym)
-
+        self.visual_connections = []
         self.draw()
         self.update_to_visual(None)
+
+    def complete(self, e):
+        if self.board.is_satisfied(self.path):
+            self.win()
+            return
+        else:
+            self.not_win()
+            return
 
     def show_remove_line(self, e):
         self.visual_connections = list(self.path.connections)
         for i in range(len(self.path.connections)):
-            if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < self.cell_size/2:
+            if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < self.app.cell_size/2:
                 self.visual_connections = self.visual_connections[:i]
                 break
         self.draw()

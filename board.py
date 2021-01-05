@@ -62,43 +62,9 @@ class Board:
             rule.draw(state)
 
 
-def basic_domain(n, m):
-    vertices = []
-    edges = []
-    cells = []
-    for i in range(n):
-        for j in range(m):
-            vertices.append((i, j))
-            if i != n-1:
-                edges.append(((i, j), (i+1, j)))
-            if j != m-1:
-                edges.append(((i, j), (i, j+1)))
-            if i != n-1 and j != m-1:
-                cells.append((i, j))
-
-    return vertices, edges, cells
-
-
 def collect_vertices_from_edges(edges):
     vertices = set()
     for edge in edges:
         vertices.add(edge[0])
         vertices.add(edge[1])
     return vertices
-
-
-def random_domain_path(n, m, path, likelihood=.9):
-    edges = [*path]
-    cells = []
-    for i in range(n):
-        for j in range(m):
-            if i != n-1 and j != m-1:
-                cells.append((i, j))
-            if i != n-1:
-                if random() <= likelihood and ((i, j), (i+1, j)) not in path:
-                    edges.append(((i, j), (i+1, j)))
-            if j != m-1:
-                if random() <= likelihood and ((i, j), (i, j+1)) not in path:
-                    edges.append(((i, j), (i, j+1)))
-
-    return collect_vertices_from_edges(edges), edges, cells
