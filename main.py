@@ -4,6 +4,8 @@ from rules import *
 from playsound import playsound
 from threading import Thread
 from board import *
+import controls
+from levels import *
 from solver import Path
 
 HEI = 7
@@ -27,7 +29,6 @@ class GameApp(tk.Frame):
         self.board = None
         self.rule_board = None
         self.buttons = []
-        self.bindings = {}
         self.cell_size = CELL
         from play import PlayerCanvas
         from design import DesignerCanvas
@@ -37,20 +38,12 @@ class GameApp(tk.Frame):
 
     def new_board(self):
         self.level_text.destroy()
-        self.master.unbind('<Return>', self.key[0])
-        self.master.unbind('<ButtonRelease-3>', self.key[1])
+        for binding in controls.SELECT:
+            binding.unbind()
 
-        domain = random_domain_path(WID, HEI, [])
-
-        rules = [EdgesGreaterThanRule(12), CellExactlyNVertex((3, 1), 2),
-                 EdgeExactlyOneVertex((3, 0), (3, 1)), CellExactlyNEdge((1, 4), 3),
-                 IncludeVertex((1, 4)), IncludeEdge((2, 3), (2, 4)),
-                 FinishVertex((3, 3)), GroupCell((0, 1), 2), GroupCell((3, 5), 1),
-                 ColorCell((1, 5)), ColorCell((3, 0), color="steel blue")]
-
-        self.board = self.board_class(board=Board(*domain, rules, [(0, 0), (3, 5)]), app=self, wr=(WID, HEI))
-
+        self.board = self.board_class(board=levelhard(), app=self, wr=(WID, HEI))
         self.level += 1
+        sound("res/softstart.wav")
 
     def new_level(self):
         if self.board is not None:
@@ -58,8 +51,8 @@ class GameApp(tk.Frame):
             if self.board.rule_board is not None:
                 self.board.rule_board.destroy()
 
-        self.key = [self.master.bind('<Return>', lambda e: self.new_board()),
-                    self.master.bind('<ButtonRelease-3>', lambda e: self.new_board())]
+        for binding in controls.SELECT:
+            binding.bind(lambda e: self.new_board(), self.master)
         self.level_text = tk.Canvas(self.master, state=tk.DISABLED, width=400, height=400)
         self.level_text.create_text(200, 200, fill="darkblue", font="Courier 20 bold", text="Level " + str(self.level))
 
@@ -75,6 +68,10 @@ def bounds(canvas, item):
     coords = canvas.bbox(item)
     bounds = coords[2] - coords[0], coords[3] - coords[1]
     return bounds
+
+
+def sound(file):
+    Thread(target=lambda: playsound(file)).start()
 
 
 def main():
