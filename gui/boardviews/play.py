@@ -1,21 +1,21 @@
 from main import *
-from bulletin import RuleBulletin
-import controls
+from gui.boardviews.bulletin import RuleBulletin
+from gui import controls
+from gameplay.solver import Path
+
 
 class PlayerCanvas(tk.Canvas):
-    def __init__(self, board, wr, app: GameApp):
-        super().__init__(app.master, width=wr[0]*app.cell_size, height=wr[1]*app.cell_size)
+    def __init__(self, board, app: GameApp):
+        super().__init__(app.master, width=board.wid*app.cell_size, height=board.hei*app.cell_size)
         self.visual_connections = []
         self.connections_stack = [[]]
         self.board = board
 
         self.app = app
-        self.wr = wr
         self.lines = []
         self.board.draw(self)
         self.draw()
         self.bindings = []
-        self.rule_board = RuleBulletin(app, self.board.rules)
 
         if len(self.board.starts) == 1:
             start = self.board.starts[0]
@@ -27,8 +27,14 @@ class PlayerCanvas(tk.Canvas):
             start = None
             self.start_bindings()
         self.path = Path([], [start], start, start)
-        self.master.minsize((wr[0] + 1)*app.cell_size+500, (wr[1] + 1)*app.cell_size)
-        self.place(relx=0.25, rely=0.5, anchor=tk.CENTER)
+        if len(self.board.constraints) > 0:
+            self.rule_bulletin = RuleBulletin(app, self.board.constraints, board.hei)
+            self.place(relx=0.25, rely=0.5, anchor=tk.CENTER)
+            self.master.minsize((board.wid + 1)*app.cell_size + 500, (board.hei + 1)*app.cell_size)
+        else:
+            self.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+            self.rule_bulletin = None
+            self.master.minsize((board.wid + 1)*app.cell_size, (board.hei + 1)*app.cell_size)
 
     def choose_start(self, e):
         for s in self.board.starts:
@@ -51,16 +57,16 @@ class PlayerCanvas(tk.Canvas):
     def show_succ_err(self):
         errcls = set()
         succls = set()
-        for rule in self.board.rules:
+        for rule in self.board.constraints:
             if rule.is_satisfied(self.board, self.path):
                 rule.success(self)
-                if isinstance(rule, TextRule) and rule not in errcls:
+                if isinstance(rule, TextConstraint) and rule not in errcls:
                     succls.add(rule)
                 elif type(rule) not in errcls:
                     succls.add(type(rule))
             else:
                 rule.error(self)
-                if isinstance(rule, TextRule):
+                if isinstance(rule, TextConstraint):
                     errcls.add(rule)
                 else:
                     errcls.add(type(rule))
@@ -68,21 +74,21 @@ class PlayerCanvas(tk.Canvas):
                         succls.remove(type(rule))
 
         for cl in errcls:
-            self.rule_board.error(cl)
+            self.rule_bulletin.error(cl)
         for cl in succls:
-            self.rule_board.success(cl)
+            self.rule_bulletin.success(cl)
 
     def unshow_succ_err(self):
         cls = set()
-        for rule in self.board.rules:
+        for rule in self.board.constraints:
             rule.normal(self)
-            if isinstance(rule, TextRule):
+            if isinstance(rule, TextConstraint):
                 cls.add(rule)
             else:
                 cls.add(type(rule))
 
         for cl in cls:
-            self.rule_board.normal(cl)
+            self.rule_bulletin.normal(cl)
 
     def win(self):
         self.unbindAll()
@@ -103,7 +109,6 @@ class PlayerCanvas(tk.Canvas):
         sound("res/softsuccess.wav")
 
     def not_win(self):
-
         self.show_succ_err()
 
         self.flash(5)
@@ -189,7 +194,7 @@ class PlayerCanvas(tk.Canvas):
     def show_add_line(self, e):
         self.visual_connections = list(self.path.connections)
 
-        for i in range(self.path.cur[0]+1, self.wr[0]) if e.x > (self.path.cur[0] + 0.5) * self.app.cell_size \
+        for i in range(self.path.cur[0]+1, self.board.wid) if e.x > (self.path.cur[0] + 0.5) * self.app.cell_size \
                 else range(self.path.cur[0]-1, -1, -1):
 
             if (i, self.path.cur[1]) in self.path.visited:
@@ -211,7 +216,7 @@ class PlayerCanvas(tk.Canvas):
                     self.visual_connections = list(self.path.connections)
                 return
 
-        for j in range(self.path.cur[1]+1, self.wr[1]) if e.y > (self.path.cur[1] + 0.5) * self.app.cell_size \
+        for j in range(self.path.cur[1]+1, self.board.hei) if e.y > (self.path.cur[1] + 0.5) * self.app.cell_size \
                 else range(self.path.cur[1]-1, -1, -1):
 
             if (self.path.cur[0], j) in self.path.visited:
@@ -285,7 +290,7 @@ class PlayerCanvas(tk.Canvas):
         self.update_to_visual(None)
 
     def right(self, e):
-        if (self.path.cur[0] + 1, self.path.cur[1]) not in self.path.visited and self.path.cur[0] < self.wr[0] - 1 and \
+        if (self.path.cur[0] + 1, self.path.cur[1]) not in self.path.visited and self.path.cur[0] < self.board.wid - 1 and \
                 self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1]))):
             self.visual_connections.append(
                 ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1])))
@@ -304,6 +309,7 @@ class PlayerCanvas(tk.Canvas):
             self.draw()
             self.unbindAll()
             self.start_bindings()
+            sound("res/softundot.wav")
         self.visual_connections = []
         self.draw()
         self.update_to_visual(None)
