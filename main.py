@@ -1,15 +1,9 @@
-import tkinter as tk
 import math
-from rules import *
 from playsound import playsound
 from threading import Thread
-from board import *
-import controls
-from levels import *
-from solver import Path
+from gameplay.levels import *
+from gui.menus.levelscreen import *
 
-HEI = 7
-WID = 5
 CELL = 64
 
 
@@ -25,38 +19,37 @@ class GameApp(tk.Frame):
         super().__init__(master)
         self.master = master
         self.pack()
-        self.level = 1
+        self.levelnum = 1
         self.board = None
-        self.rule_board = None
+        self.levelscreen = None
         self.buttons = []
         self.cell_size = CELL
-        from play import PlayerCanvas
-        from design import DesignerCanvas
+        from gui.boardviews.play import PlayerCanvas
+        from gui.boardviews.design import DesignerCanvas
 
         # TODO this is an awful line of code
         self.board_class = {PLAYING: PlayerCanvas, DESIGNING: DesignerCanvas}[CURRENT_STATE]
 
-    def new_board(self):
-        self.level_text.destroy()
+    def new_board(self, board):
+        if self.levelscreen is not None:
+            self.levelscreen.destroy()
+            self.levelscreen = None
         for binding in controls.SELECT:
             binding.unbind()
 
-        self.board = self.board_class(board=levelhard(), app=self, wr=(WID, HEI))
-        self.level += 1
+        self.board = self.board_class(board=board, app=self)
+        self.levelnum += 1
         sound("res/softstart.wav")
 
     def new_level(self):
         if self.board is not None:
             self.board.destroy()
-            if self.board.rule_board is not None:
-                self.board.rule_board.destroy()
+            if self.board.rule_bulletin is not None:
+                self.board.rule_bulletin.destroy()
+            self.board = None
 
-        for binding in controls.SELECT:
-            binding.bind(lambda e: self.new_board(), self.master)
-        self.level_text = tk.Canvas(self.master, state=tk.DISABLED, width=400, height=400)
-        self.level_text.create_text(200, 200, fill="darkblue", font="Courier 20 bold", text="Level " + str(self.level))
+        self.levelscreen = LevelScreen(self, get_level(self.levelnum))
 
-        self.level_text.pack(anchor=tk.CENTER)
 
 
 def dist_real_to_coord(coord1, coord2):

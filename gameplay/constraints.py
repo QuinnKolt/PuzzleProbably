@@ -1,7 +1,7 @@
 from math import *
 
 
-class GameRule:
+class Constraint:
     def __init__(self):
         self.shapes = []
 
@@ -24,26 +24,26 @@ class GameRule:
         pass
 
 
-class VertexRule(GameRule):
+class VertexConstraint(Constraint):
     def __init__(self, pos):
         super().__init__()
         self.pos = pos
 
 
-class CellRule(GameRule):
+class CellConstraint(Constraint):
     def __init__(self, pos):
         super().__init__()
         self.pos = pos
 
 
-class EdgeRule(GameRule):
+class EdgeConstraint(Constraint):
     def __init__(self, p, q):
         super().__init__()
         self.p = p
         self.q = q
 
 
-class TextRule(GameRule):
+class TextConstraint(Constraint):
     def __init__(self, text, rule):
         super().__init__()
         self.text = text
@@ -53,28 +53,28 @@ class TextRule(GameRule):
         return self.rule(solution, board)
 
 
-def EdgesLessThanRule(n):
-    return TextRule("Complete the board in less than " + str(n) + " connections",
-                    lambda solution, board: len(solution.connections) < n)
+def EdgesLessThan(n):
+    return TextConstraint("Complete the board in less than " + str(n) + " connections",
+                          lambda solution, board: len(solution.connections) < n)
 
 
-def EdgesGreaterThanRule(n):
-    return TextRule("Complete the board in more than " + str(n) + " connections",
-                    lambda solution, board: len(solution.connections) > n)
+def EdgesGreaterThan(n):
+    return TextConstraint("Complete the board in more than " + str(n) + " connections",
+                          lambda solution, board: len(solution.connections) > n)
 
 
-def EdgesExactlyRule(n):
-    return TextRule("Complete the board in exactly " + str(n) + " connections",
-                    lambda solution, board: len(solution.connections) == n)
+def EdgesExactly(n):
+    return TextConstraint("Complete the board in exactly " + str(n) + " connections",
+                          lambda solution, board: len(solution.connections) == n)
 
 
 # TODO: Make this more general
-def EveryVertexRule():
-    return TextRule("Visit every vertex on the board",
-                    lambda solution, board: len(solution.visited) == len(board.vertices))
+def EveryVertex():
+    return TextConstraint("Visit every vertex on the board",
+                          lambda solution, board: len(solution.visited) == len(board.vertices))
 
 
-class IncludeVertex(VertexRule):
+class IncludeVertex(VertexConstraint):
     def __init__(self, pos):
         super().__init__(pos)
 
@@ -97,7 +97,7 @@ class IncludeVertex(VertexRule):
         return self.pos in solution.visited
 
 
-class EdgeExactlyOneVertex(EdgeRule):
+class EdgeExactlyOneVertex(EdgeConstraint):
     def __init__(self, p, q):
         super().__init__(p, q)
 
@@ -120,7 +120,7 @@ class EdgeExactlyOneVertex(EdgeRule):
         return (self.p in solution.visited) != (self.q in solution.visited)
 
 
-class CellExactlyNVertex(CellRule):
+class CellExactlyNVertex(CellConstraint):
     def __init__(self, pos, n):
         super().__init__(pos)
         self.n = n
@@ -216,7 +216,7 @@ class CellExactlyNVertex(CellRule):
                           (self.pos[0]+1, self.pos[1]+1)] if p in solution.visited]) == self.n
 
 
-class CellExactlyNEdge(CellRule):
+class CellExactlyNEdge(CellConstraint):
     def __init__(self, pos, n):
         super().__init__(pos)
         self.n = n
@@ -281,7 +281,7 @@ class CellExactlyNEdge(CellRule):
                     if p in solution.connections]) == self.n
 
 
-class IncludeEdge(EdgeRule):
+class IncludeEdge(EdgeConstraint):
     def __init__(self, p, q):
         super().__init__(p, q)
 
@@ -317,7 +317,7 @@ class IncludeEdge(EdgeRule):
         return (self.p, self.q) in solution.connections or (self.q, self.p) in solution.connections
 
 
-class FinishVertex(VertexRule):
+class FinishVertex(VertexConstraint):
     def __init__(self, pos):
         super().__init__(pos)
 
@@ -379,7 +379,7 @@ def get_area(board, solution, pos):
     return area
 
 
-class GroupCell(CellRule):
+class GroupCell(CellConstraint):
     def __init__(self, pos, n, color="orange"):
         super().__init__(pos)
         self.n = n
@@ -407,7 +407,7 @@ class GroupCell(CellRule):
         return self.n == cols
 
 
-class ColorCell(CellRule):
+class ColorCell(CellConstraint):
     def __init__(self, pos, color="orange"):
         super().__init__(pos)
         self.color = color
@@ -435,7 +435,7 @@ class ColorCell(CellRule):
         return True
 
 
-class ConstructedAreaRule(CellRule):
+class ConstructedAreaConstraint(CellConstraint):
     def __init__(self, pos, grpkey=None):
         super().__init__(pos)
         self.grpkey = grpkey
@@ -454,7 +454,7 @@ class ConstructedAreaRule(CellRule):
         group_rules = [self]
         for cell in area:
             obj = board.cell_rule_at(cell)
-            if isinstance(obj, ConstructedAreaRule) and obj.grpkey == self.grpkey and obj is not self:
+            if isinstance(obj, ConstructedAreaConstraint) and obj.grpkey == self.grpkey and obj is not self:
                 group_rules.append(obj)
 
         return self.satisfied_rec(board, solution, area, area, group_rules)

@@ -1,13 +1,14 @@
-from rules import CellRule, EdgeRule, VertexRule, TextRule
-from random import random
+from gameplay.constraints import CellConstraint, EdgeConstraint, VertexConstraint, TextConstraint
 
 
 class Board:
-    def __init__(self, vertices, edges, cells, rules, starts):
+    def __init__(self, vertices, edges, cells, constraints, starts):
         self.cells = cells
         self.edges = edges
-        self.rules = rules
+        self.constraints = constraints
         self.starts = starts
+        self.wid = max(c[0] for c in cells) + 2
+        self.hei = max(c[1] for c in cells) + 2
         if vertices is not None:
             self.vertices = vertices
         else:
@@ -17,32 +18,32 @@ class Board:
                 self.vertices.add(edge[1])
 
     def cell_rule_at(self, pos):
-        for obj in self.rules:
-            if isinstance(obj, CellRule) and obj.pos == pos:
+        for obj in self.constraints:
+            if isinstance(obj, CellConstraint) and obj.pos == pos:
                 return obj
         return None
 
     def vertex_rule_at(self, pos):
-        for obj in self.rules:
-            if isinstance(obj, VertexRule) and obj.pos == pos:
+        for obj in self.constraints:
+            if isinstance(obj, VertexConstraint) and obj.pos == pos:
                 return obj
         return None
 
     def edge_rule_at(self, p, q):
-        for obj in self.rules:
-            if isinstance(obj, EdgeRule) and (obj.p == p and obj.q == q) or (obj.p == q and obj.q == p):
+        for obj in self.constraints:
+            if isinstance(obj, EdgeConstraint) and (obj.p == p and obj.q == q) or (obj.p == q and obj.q == p):
                 return obj
         return None
 
     def is_satisfied(self, path):
-        for rule in self.rules:
+        for rule in self.constraints:
             if not rule.is_satisfied(self, path):
                 return False
 
         return True
 
-    def partition_rules(self, types=(VertexRule, EdgeRule, CellRule, TextRule)):
-        return {cl: [rule for rule in self.rules if isinstance(rule, cl)] for cl in types}
+    def partition_rules(self, types=(VertexConstraint, EdgeConstraint, CellConstraint, TextConstraint)):
+        return {cl: [rule for rule in self.constraints if isinstance(rule, cl)] for cl in types}
 
     def draw(self, state):
         for cell in self.cells:
@@ -58,13 +59,6 @@ class Board:
                               (s[0] + 0.5)*64 + 5, (s[1] + 0.5)*64 + 5,
                               fill="white", outline="black")
 
-        for rule in self.rules:
+        for rule in self.constraints:
             rule.draw(state)
 
-
-def collect_vertices_from_edges(edges):
-    vertices = set()
-    for edge in edges:
-        vertices.add(edge[0])
-        vertices.add(edge[1])
-    return vertices
