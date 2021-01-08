@@ -31,6 +31,11 @@ class DesignerCanvas(tk.Canvas):
                                  (i + 17/32) * self.app.cell_size, (j + 17/32) * self.app.cell_size,
                                  fill="slate gray")
 
+
+    def hover_bindings(self):
+
+        pass
+
     def add_rule(self, e):
         pass
 

@@ -1,8 +1,10 @@
 import tkinter as tk
 import math
-from rules import *
-from playsound import playsound
 from threading import Thread
+
+from playsound import playsound
+
+from rules import *
 from board import *
 from solver import Path
 
@@ -10,13 +12,8 @@ HEI = 7
 WID = 5
 CELL = 64
 
-
 PLAYING = "PLAYING"
 DESIGNING = "DESIGNING"
-
-# Start the app in the design state
-CURRENT_STATE = PLAYING
-
 
 class GameApp(tk.Frame):
     def __init__(self, master=None):
@@ -29,11 +26,14 @@ class GameApp(tk.Frame):
         self.buttons = []
         self.bindings = {}
         self.cell_size = CELL
+        # self.state = PLAYING
+        self.state = DESIGNING
+
         from play import PlayerCanvas
         from design import DesignerCanvas
 
         # TODO this is an awful line of code
-        self.board_class = {PLAYING: PlayerCanvas, DESIGNING: DesignerCanvas}[CURRENT_STATE]
+        self.board_class = {PLAYING: PlayerCanvas, DESIGNING: DesignerCanvas}[self.state]
 
     def new_board(self):
         self.level_text.destroy()
