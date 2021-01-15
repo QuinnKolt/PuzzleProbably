@@ -1,0 +1,1 @@
+{"vertices": [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]], "edges": [[[0, 0], [0, 1]], [[0, 1], [1, 1]], [[1, 1], [2, 1]], [[2, 1], [2, 2]]], "cells": [[0, 0], [0, 1], [1, 0], [1, 1]], "starts": [[0, 0]], "constraintargs": [["FinishVertex", [[2, 2]]]], "levelno": 3, "flavortext": "There may be edges that cannot be travelled through."}

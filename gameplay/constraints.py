@@ -1,6 +1,18 @@
 from math import *
 
 
+def same_vert(p, q):
+    return p[0] == q[0] and p[1] == q[1]
+
+
+def same_edge(e, f):
+    return e[0][0] == f[0][0] and e[0][1] == f[0][1] and e[1][0] == f[1][0] and e[1][1] == f[1][1]
+
+
+def same_call(c, d):
+    return c[0] == d[0] and c[1] == d[1]
+
+
 class Constraint:
     def __init__(self):
         self.shapes = []
@@ -23,55 +35,89 @@ class Constraint:
     def draw(self, state):
         pass
 
+    def get_args(self):
+        return ()
+
 
 class VertexConstraint(Constraint):
     def __init__(self, pos):
         super().__init__()
-        self.pos = pos
+        self.pos = tuple(pos)
+
+    def get_args(self):
+        return self.pos,
 
 
 class CellConstraint(Constraint):
     def __init__(self, pos):
         super().__init__()
-        self.pos = pos
+        self.pos = tuple(pos)
+
+    def get_args(self):
+        return self.pos,
 
 
 class EdgeConstraint(Constraint):
     def __init__(self, p, q):
         super().__init__()
-        self.p = p
-        self.q = q
+        self.p = tuple(p)
+        self.q = tuple(q)
+
+    def get_args(self):
+        return self.p, self.q
 
 
 class TextConstraint(Constraint):
-    def __init__(self, text, rule):
+    def __init__(self, text):
         super().__init__()
         self.text = text
-        self.rule = rule
+
+
+class EdgesLessThan(TextConstraint):
+    def __init__(self, n):
+        super().__init__("Complete the board in less than " + str(n) + " connections")
+        self.n = n
 
     def is_satisfied(self, board, solution):
-        return self.rule(solution, board)
+        return len(solution.connections) < self.n
+
+    def get_args(self):
+        return self.n,
 
 
-def EdgesLessThan(n):
-    return TextConstraint("Complete the board in less than " + str(n) + " connections",
-                          lambda solution, board: len(solution.connections) < n)
+class EdgesGreaterThan(TextConstraint):
+    def __init__(self, n):
+        super().__init__("Complete the board in more than " + str(n) + " connections")
+        self.n = n
+
+    def is_satisfied(self, board, solution):
+        return len(solution.connections) > self.n
+
+    def get_args(self):
+        return self.n,
 
 
-def EdgesGreaterThan(n):
-    return TextConstraint("Complete the board in more than " + str(n) + " connections",
-                          lambda solution, board: len(solution.connections) > n)
+class EdgesExactly(TextConstraint):
+    def __init__(self, n):
+        super().__init__("Complete the board in exactly " + str(n) + " connections")
+        self.n = n
+
+    def is_satisfied(self, board, solution):
+        return len(solution.connections) == self.n
+
+    def get_args(self):
+        return self.n,
 
 
-def EdgesExactly(n):
-    return TextConstraint("Complete the board in exactly " + str(n) + " connections",
-                          lambda solution, board: len(solution.connections) == n)
+class EveryVertex(TextConstraint):
+    def __init__(self, n):
+        super().__init__("Visit every vertex on the board")
 
+    def is_satisfied(self, board, solution):
+        return len(solution.visited) == len(board.vertices)
 
-# TODO: Make this more general
-def EveryVertex():
-    return TextConstraint("Visit every vertex on the board",
-                          lambda solution, board: len(solution.visited) == len(board.vertices))
+    def get_args(self):
+        return ()
 
 
 class IncludeVertex(VertexConstraint):
@@ -215,6 +261,9 @@ class CellExactlyNVertex(CellConstraint):
                           (self.pos[0]+1, self.pos[1]),
                           (self.pos[0]+1, self.pos[1]+1)] if p in solution.visited]) == self.n
 
+    def get_args(self):
+        return self.pos, self.n
+
 
 class CellExactlyNEdge(CellConstraint):
     def __init__(self, pos, n):
@@ -280,6 +329,9 @@ class CellExactlyNEdge(CellConstraint):
                                    ((self.pos[0]+1, self.pos[1]+1), (self.pos[0], self.pos[1]+1))]
                     if p in solution.connections]) == self.n
 
+    def get_args(self):
+        return self.pos, self.n
+
 
 class IncludeEdge(EdgeConstraint):
     def __init__(self, p, q):
@@ -337,7 +389,7 @@ class FinishVertex(VertexConstraint):
         board.itemconfig(self.shapes[0], fill="blue")
 
     def is_satisfied(self, board, solution):
-        return solution.cur == self.pos
+        return same_vert(solution.cur, self.pos)
 
 
 def cell_in_domain(board, pos):
@@ -345,7 +397,7 @@ def cell_in_domain(board, pos):
 
 
 def vertex_in_domain(board, pos):
-    pass
+    return pos in board.vertices
 
 
 def get_area(board, solution, pos):
@@ -406,6 +458,9 @@ class GroupCell(CellConstraint):
 
         return self.n == cols
 
+    def get_args(self):
+        return self.pos, self.n, self.color
+
 
 class ColorCell(CellConstraint):
     def __init__(self, pos, color="orange"):
@@ -434,6 +489,9 @@ class ColorCell(CellConstraint):
 
         return True
 
+    def get_args(self):
+        return self.pos, self.color
+
 
 class ConstructedAreaConstraint(CellConstraint):
     def __init__(self, pos, grpkey=None):
@@ -458,6 +516,9 @@ class ConstructedAreaConstraint(CellConstraint):
                 group_rules.append(obj)
 
         return self.satisfied_rec(board, solution, area, area, group_rules)
+
+    def get_args(self):
+        return self.pos, self.grpkey
 
 
 CLASS_RULES = {IncludeVertex: "Pass through the purple vertices if they are on a vertex",

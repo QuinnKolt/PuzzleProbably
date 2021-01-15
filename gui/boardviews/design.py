@@ -1,19 +1,21 @@
-from main import *
+from gui.app import *
+from gameplay.constraints import *
 from gui.boardviews.bulletin import RuleBulletin
 
 
-class DesignerCanvas(tk.Canvas):
-    def __init__(self, board, app: GameApp):
-        super().__init__(app.master, width=board.wid*app.cell_size, height=board.hei*app.cell_size)
+class DesignerCanvas(State):
+    def __init__(self, level, app: GameApp):
+        super().__init__(app, ((level.board.wid + 1)*app.cell_size+500, (level.board.hei + 1)*app.cell_size))
         self.rules = []
-        self.app = app
         self.vrule_list = [lambda pos: FinishVertex(pos)]
         self.erule_list = [lambda p, q: EdgeExactlyOneVertex(p, q)]
         self.crule_list = [lambda pos: CellExactlyNEdge(pos, 1)]
         self.vtool = 0
         self.etool = 0
         self.crule = 0
-        self.board = board
+        self.flavortext = ""
+        self.num = -1
+        self.board = level.board
         self.dmode = True
 
         self.rule_board = RuleBulletin(app, board.constraints, board.hei)
