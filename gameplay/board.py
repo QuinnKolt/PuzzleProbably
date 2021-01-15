@@ -1,8 +1,8 @@
-from gameplay.constraints import CellConstraint, EdgeConstraint, VertexConstraint, TextConstraint
+from gameplay.constraints import *
 
 
 class Board:
-    def __init__(self, vertices, edges, cells, constraints, starts):
+    def __init__(self, vertices, edges, cells, starts, constraints):
         self.cells = cells
         self.edges = edges
         self.constraints = constraints
@@ -61,4 +61,3 @@ class Board:
 
         for rule in self.constraints:
             rule.draw(state)
-

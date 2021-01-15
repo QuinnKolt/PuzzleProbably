@@ -1,12 +1,13 @@
-from main import *
+from gui.app import *
 from gui.boardviews.bulletin import RuleBulletin
+from gameplay.constraints import *
 from gui import controls
 from gameplay.solver import Path
 
 
-class PlayerCanvas(tk.Canvas):
+class PlayerCanvas(State):
     def __init__(self, board, app: GameApp):
-        super().__init__(app.master, width=board.wid*app.cell_size, height=board.hei*app.cell_size)
+        super().__init__(app.master, dim=(board.wid*app.cell_size, board.hei*app.cell_size))
         self.visual_connections = []
         self.connections_stack = [[]]
         self.board = board
@@ -261,8 +262,8 @@ class PlayerCanvas(tk.Canvas):
                 self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] - 1))):
             self.visual_connections.append(
                 ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] - 1)))
-        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                ((self.path.cur[0], self.path.cur[1] - 1), (self.path.cur[0], self.path.cur[1])):
+        elif len(self.path.connections) != 0 and same_edge(self.path.connections[-1],
+                ((self.path.cur[0], self.path.cur[1] - 1), (self.path.cur[0], self.path.cur[1]))):
             self.visual_connections = self.path.connections[:-1]
         self.draw()
         self.update_to_visual(None)
@@ -272,8 +273,8 @@ class PlayerCanvas(tk.Canvas):
                 self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] + 1))):
             self.visual_connections.append(
                 ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0], self.path.cur[1] + 1)))
-        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                ((self.path.cur[0], self.path.cur[1] + 1), (self.path.cur[0], self.path.cur[1])):
+        elif len(self.path.connections) != 0 and same_edge(self.path.connections[-1],
+                ((self.path.cur[0], self.path.cur[1] + 1), (self.path.cur[0], self.path.cur[1]))):
             self.visual_connections = self.path.connections[:-1]
         self.draw()
         self.update_to_visual(None)
@@ -283,8 +284,8 @@ class PlayerCanvas(tk.Canvas):
                 self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] - 1, self.path.cur[1]))):
             self.visual_connections.append(
                 ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] - 1, self.path.cur[1])))
-        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                ((self.path.cur[0] - 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1])):
+        elif len(self.path.connections) != 0 and same_edge(self.path.connections[-1],
+                ((self.path.cur[0] - 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1]))):
             self.visual_connections = self.path.connections[:-1]
         self.draw()
         self.update_to_visual(None)
@@ -294,8 +295,8 @@ class PlayerCanvas(tk.Canvas):
                 self.is_valid(((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1]))):
             self.visual_connections.append(
                 ((self.path.cur[0], self.path.cur[1]), (self.path.cur[0] + 1, self.path.cur[1])))
-        elif len(self.path.connections) != 0 and self.path.connections[-1] == \
-                ((self.path.cur[0] + 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1])):
+        elif len(self.path.connections) != 0 and same_edge(self.path.connections[-1],
+                ((self.path.cur[0] + 1, self.path.cur[1]), (self.path.cur[0], self.path.cur[1]))):
             self.visual_connections = self.path.connections[:-1]
         self.draw()
         self.update_to_visual(None)

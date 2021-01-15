@@ -1,6 +1,3 @@
-
-
-
 class Binding:
     def __init__(self, str):
         self.str = str
@@ -56,11 +53,15 @@ DOWN = {KeyBinding("Down"), KeyBinding("s")}
 RIGHT = {KeyBinding("Right"), KeyBinding("d")}
 COMPLETE = {KeyBinding("Return"), MouseBinding('<Double-Button-1>')}
 CLEAR = {KeyBinding("space"), KeyBinding("Escape")}
-UNDO = {KeyBinding("BackSpace"), MouseBinding('<ButtonRelease-2>')}
 
 FORWARD_VIS = {MouseBinding('<Button-1>'), MouseBinding('<B1-Motion>')}
 BACKWARD_VIS = {MouseBinding('<Button-3>'), MouseBinding('<B3-Motion>')}
 UPDATE = {MouseBinding('<ButtonRelease-1>'), MouseBinding('<ButtonRelease-3>')}
 START = {MouseBinding('<Button-1>')}
 
-SELECT = {MouseBinding('<ButtonRelease-3>'), MasterKeyBinding("Return")}
+UNDO = {KeyBinding("BackSpace"), MouseBinding('<ButtonRelease-2>')}
+CONTINUE = {MouseBinding('<ButtonRelease-3>'), MasterKeyBinding("Return")}
+SELECT = {MouseBinding('<ButtonRelease-1>')}
+
+ALL_CONTROLS = [UP, LEFT, DOWN, RIGHT, COMPLETE, CLEAR, UNDO,
+                FORWARD_VIS, BACKWARD_VIS, UPDATE, START, CONTINUE, SELECT]

@@ -1,4 +1,5 @@
-from main import *
+from gui.app import *
+from gameplay.constraints import *
 
 
 class RuleBulletin(tk.Canvas):
