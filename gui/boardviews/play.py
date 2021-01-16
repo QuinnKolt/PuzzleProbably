@@ -4,6 +4,11 @@ from gameplay.constraints import *
 from gui import controls
 from gameplay.solver import Path
 
+# Maximum number of steps backwards when drawing a line continuously
+MAX_BACK = 3
+# Minimum precision of click needed to jump backwards
+MIN_PRECISION = 6
+
 
 class PlayerCanvas(State):
     def __init__(self, board, app: GameApp):
@@ -24,10 +29,11 @@ class PlayerCanvas(State):
             self.sshape = self.create_oval((start[0] + 0.5)*64 - 5, (start[1] + 0.5)*64 - 5,
                                            (start[0] + 0.5)*64 + 5, (start[1] + 0.5)*64 + 5,
                                            fill="black", outline="black")
+            self.path = Path([], [start], start, start)
         else:
-            start = None
+            self.path = None
             self.start_bindings()
-        self.path = Path([], [start], start, start)
+
         if len(self.board.constraints) > 0:
             self.rule_bulletin = RuleBulletin(app, self.board.constraints, board.hei)
             self.place(relx=0.25, rely=0.5, anchor=tk.CENTER)
@@ -36,19 +42,6 @@ class PlayerCanvas(State):
             self.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
             self.rule_bulletin = None
             self.master.minsize((board.wid + 1)*app.cell_size, (board.hei + 1)*app.cell_size)
-
-    def choose_start(self, e):
-        for s in self.board.starts:
-            if dist_real_to_coord((e.x, e.y), s) < self.app.cell_size/2:
-                self.path.start = s
-                self.path.cur = self.path.start
-                self.unbindAll()
-                self.sshape = self.create_oval((self.path.start[0] + 0.5)*64 - 5, (self.path.start[1] + 0.5)*64 - 5,
-                                               (self.path.start[0] + 0.5)*64 + 5, (self.path.start[1] + 0.5)*64 + 5,
-                                               fill="black", outline="black")
-                self.line_draw_bindings()
-                sound("res/softdot.wav")
-                break
 
     def unbindAll(self):
         for binding in self.bindings:
@@ -95,12 +88,12 @@ class PlayerCanvas(State):
         self.unbindAll()
 
         def complete(e):
-            for key in self.appbindings:
-                self.master.unbind(key, self.appbindings[key])
+            self.unbindAll()
             self.app.new_level()
 
-        self.bindings = {'<ButtonRelease-3>': self.bind('<ButtonRelease-3>', complete)}
-        self.appbindings = {'<Return>': self.master.bind('<Return>', complete)}
+        for binding in controls.CONTINUE:
+            binding.bind(complete, self)
+            self.bindings.append(binding)
 
         self.show_succ_err()
 
@@ -146,14 +139,11 @@ class PlayerCanvas(State):
             self.bindings.append(binding)
 
     def line_draw_bindings(self):
-        for binding in controls.FORWARD_VIS:
-            binding.bind(self.show_add_line, self)
+        for binding in controls.CONT_MOVE:
+            binding.bind(self.cont_move, self)
             self.bindings.append(binding)
-        for binding in controls.UPDATE:
-            binding.bind(self.update_to_visual, self)
-            self.bindings.append(binding)
-        for binding in controls.BACKWARD_VIS:
-            binding.bind(self.show_remove_line, self)
+        for binding in controls.JUMP_MOVE:
+            binding.bind(self.jump_move, self)
             self.bindings.append(binding)
         for binding in controls.UNDO:
             binding.bind(self.undo, self)
@@ -192,6 +182,42 @@ class PlayerCanvas(State):
                 return False
         return True
 
+    def choose_start(self, e):
+        for s in self.board.starts:
+            if dist_real_to_coord((e.x, e.y), s) < self.app.cell_size/2:
+                if self.path is None or self.path.start != s:
+                    self.path = Path([], [s], s, s)
+                    self.unbindAll()
+                    self.sshape = self.create_oval((self.path.start[0] + 0.5)*64 - 5, (self.path.start[1] + 0.5)*64 - 5,
+                                                   (self.path.start[0] + 0.5)*64 + 5, (self.path.start[1] + 0.5)*64 + 5,
+                                                   fill="black", outline="black")
+                    self.line_draw_bindings()
+                    sound("res/softdot.wav")
+                    return True
+        return False
+
+    def jump_move(self, e):
+        if not self.show_add_line(e):
+            if not self.show_remove_line(e) and \
+                    self.path.cur == self.path.start and len(self.board.starts) > 1:
+                shape = self.sshape
+                if self.choose_start(e):
+                    self.delete(shape)
+
+        self.draw()
+        self.update_to_visual(e)
+
+    def cont_move(self, e):
+        if not self.show_add_line(e):
+            if not self.show_remove_line(e, max_back=MAX_BACK) and \
+                    self.path.cur == self.path.start and len(self.board.starts) > 1:
+                shape = self.sshape
+                if self.choose_start(e):
+                    self.delete(shape)
+
+        self.draw()
+        self.update_to_visual(e)
+
     def show_add_line(self, e):
         self.visual_connections = list(self.path.connections)
 
@@ -215,7 +241,7 @@ class PlayerCanvas(State):
                     self.draw()
                 else:
                     self.visual_connections = list(self.path.connections)
-                return
+                return True
 
         for j in range(self.path.cur[1]+1, self.board.hei) if e.y > (self.path.cur[1] + 0.5) * self.app.cell_size \
                 else range(self.path.cur[1]-1, -1, -1):
@@ -238,15 +264,16 @@ class PlayerCanvas(State):
                     self.draw()
                 else:
                     self.visual_connections = list(self.path.connections)
-                return
+                return True
 
-        self.draw()
+        return False
 
     def update_to_visual(self, e):
-        self.path.connections = self.visual_connections
-        self.update_points()
-        if tuple(self.path.connections) != tuple(self.connections_stack[-1]):
-            self.connections_stack.append(tuple(self.path.connections))
+        if self.path is not None:
+            self.path.connections = self.visual_connections
+            self.update_points()
+            if tuple(self.path.connections) != tuple(self.connections_stack[-1]):
+                self.connections_stack.append(tuple(self.path.connections))
 
     def update_points(self):
         if len(self.path.connections) != 0:
@@ -303,10 +330,9 @@ class PlayerCanvas(State):
 
     def clear(self, e):
         if len(self.board.starts) != 1:
-            self.path.visited = []
-            self.path.connections = []
+            self.path = None
             self.connections_stack = [[]]
-            self.itemconfigure(self.sshape, fill="")
+            self.delete(self.sshape)
             self.draw()
             self.unbindAll()
             self.start_bindings()
@@ -323,13 +349,20 @@ class PlayerCanvas(State):
             self.not_win()
             return
 
-    def show_remove_line(self, e):
+    def show_remove_line(self, e, max_back=None):
         self.visual_connections = list(self.path.connections)
-        for i in range(len(self.path.connections)):
-            if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < self.app.cell_size/2:
-                self.visual_connections = self.visual_connections[:i]
-                break
-        self.draw()
+        if max_back is not None:
+            for i in range(len(self.path.connections)-1, max(len(self.path.connections) - 1 - max_back, -1), -1):
+                if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < self.app.cell_size/2:
+                    self.visual_connections = self.visual_connections[:i]
+                    return True
+        else:
+            for i in range(len(self.path.connections)-1, -1, -1):
+                precision = max(self.app.cell_size/(2 + len(self.path.connections)-i), MIN_PRECISION)
+                if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < precision:
+                    self.visual_connections = self.visual_connections[:i]
+                    return True
+        return False
 
     def undo(self, e):
         if len(self.connections_stack) != 1:

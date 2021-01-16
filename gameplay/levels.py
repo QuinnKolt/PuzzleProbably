@@ -7,11 +7,16 @@ from os import path as pathos
 PREPPED_LEVELS = {}
 
 
-def prep_level(lev):
+def preload_level(lev):
     if pathos.exists("levels/level" + str(lev) + ".json"):
         PREPPED_LEVELS[lev] = open_level("levels/level" + str(lev) + ".json")
     else:
         PREPPED_LEVELS[lev] = open_level("levels/hard.json")
+
+
+def close_level(lev):
+    if lev in PREPPED_LEVELS.keys():
+        PREPPED_LEVELS.pop(lev)
 
 
 def get_level(lev):

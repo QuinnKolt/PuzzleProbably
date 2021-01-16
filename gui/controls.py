@@ -54,14 +54,13 @@ RIGHT = {KeyBinding("Right"), KeyBinding("d")}
 COMPLETE = {KeyBinding("Return"), MouseBinding('<Double-Button-1>')}
 CLEAR = {KeyBinding("space"), KeyBinding("Escape")}
 
-FORWARD_VIS = {MouseBinding('<Button-1>'), MouseBinding('<B1-Motion>')}
-BACKWARD_VIS = {MouseBinding('<Button-3>'), MouseBinding('<B3-Motion>')}
-UPDATE = {MouseBinding('<ButtonRelease-1>'), MouseBinding('<ButtonRelease-3>')}
+CONT_MOVE = {MouseBinding('<B1-Motion>')}
+JUMP_MOVE = {MouseBinding('<Button-1>')}
 START = {MouseBinding('<Button-1>')}
 
 UNDO = {KeyBinding("BackSpace"), MouseBinding('<ButtonRelease-2>')}
-CONTINUE = {MouseBinding('<ButtonRelease-3>'), MasterKeyBinding("Return")}
+CONTINUE = {MouseBinding('<Button-1>'), MasterKeyBinding("Return")}
 SELECT = {MouseBinding('<ButtonRelease-1>')}
 
 ALL_CONTROLS = [UP, LEFT, DOWN, RIGHT, COMPLETE, CLEAR, UNDO,
-                FORWARD_VIS, BACKWARD_VIS, UPDATE, START, CONTINUE, SELECT]
+                CONT_MOVE, JUMP_MOVE, START, CONTINUE, SELECT]

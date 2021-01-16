@@ -4,7 +4,7 @@ from threading import Thread
 
 from playsound import playsound
 
-from gameplay.levels import get_level,prep_level
+from gameplay.levels import *
 from gui import controls
 from gui.menus.levelscreen import LevelScreen
 CELL = 64
@@ -40,7 +40,8 @@ class GameApp(tk.Frame):
             self.board = None
 
         self.levelscreen = LevelScreen(self, get_level(self.levelnum))
-        Thread(target=lambda: prep_level(self.levelnum+1)).start()
+        Thread(target=lambda: preload_level(self.levelnum + 1)).start()
+        Thread(target=lambda: close_level(self.levelnum - 1)).start()
 
 
 def dist_real_to_coord(coord1, coord2):
