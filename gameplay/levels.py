@@ -2,11 +2,23 @@ from gameplay.constraints import *
 from gameplay.board import Board
 from random import random
 import json
-from os import path
+from os import path as pathos
+
+PREPPED_LEVELS = {}
+
+
+def prep_level(lev):
+    if pathos.exists("levels/level" + str(lev) + ".json"):
+        PREPPED_LEVELS[lev] = open_level("levels/level" + str(lev) + ".json")
+    else:
+        PREPPED_LEVELS[lev] = open_level("levels/hard.json")
 
 
 def get_level(lev):
-    if path.exists("levels/level" + str(lev) + ".json"):
+    if lev in PREPPED_LEVELS.keys():
+        return PREPPED_LEVELS[lev]
+
+    if pathos.exists("levels/level" + str(lev) + ".json"):
         return open_level("levels/level" + str(lev) + ".json")
 
     return open_level("levels/hard.json")
