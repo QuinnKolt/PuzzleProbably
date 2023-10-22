@@ -1,4 +1,8 @@
-from rules import CellRule, EdgeRule, VertexRule, TextRule
+from rules.area_rules import *
+from rules.cell_rules import *
+from rules.edge_rules import *
+from rules.vertex_rules import *
+from rules.text_rules import *
 from random import random
 
 
@@ -102,3 +106,10 @@ def random_domain_path(n, m, path, likelihood=.9):
                     edges.append(((i, j), (i, j+1)))
 
     return collect_vertices_from_edges(edges), edges, cells
+
+class Path:
+    def __init__(self, connections, visited=None, cur=None, start=None):
+        self.visited = visited
+        self.connections = connections
+        self.cur = cur
+        self.start = start

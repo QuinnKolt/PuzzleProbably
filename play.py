@@ -1,6 +1,7 @@
+from playsound import playsound
+
 from main import *
 from bulletin import RuleBulletin
-
 
 class PlayerCanvas(tk.Canvas):
     def __init__(self, board, wr, app: GameApp):
@@ -58,18 +59,12 @@ class PlayerCanvas(tk.Canvas):
         for rule in self.board.rules:
             if rule.is_satisfied(self.board, self.path):
                 rule.success(self)
-                if isinstance(rule, TextRule) and rule not in errcls:
-                    succls.add(rule)
-                elif type(rule) not in errcls:
-                    succls.add(type(rule))
+                succls.add(type(rule))
             else:
                 rule.error(self)
-                if isinstance(rule, TextRule):
-                    errcls.add(rule)
-                else:
-                    errcls.add(type(rule))
-                    if type(rule) in succls:
-                        succls.remove(type(rule))
+                errcls.add(type(rule))
+                if type(rule) in succls:
+                    succls.remove(type(rule))
 
         for cl in errcls:
             self.rule_board.error(cl)
@@ -80,10 +75,7 @@ class PlayerCanvas(tk.Canvas):
         cls = set()
         for rule in self.board.rules:
             rule.normal(self)
-            if isinstance(rule, TextRule):
-                cls.add(rule)
-            else:
-                cls.add(type(rule))
+            cls.add(type(rule))
 
         for cl in cls:
             self.rule_board.normal(cl)
@@ -224,7 +216,7 @@ class PlayerCanvas(tk.Canvas):
         self.path.connections = self.visual_connections
         self.update_points()
         if tuple(self.path.connections) != tuple(self.connections_stack[-1]):
-            self.connections_stack.append(tuple(self.path.connections))
+            self.connections_stack.append(list(self.path.connections))
 
     def update_points(self):
         if len(self.path.connections) != 0:
@@ -293,7 +285,7 @@ class PlayerCanvas(tk.Canvas):
     def show_remove_line(self, e):
         self.visual_connections = list(self.path.connections)
         for i in range(len(self.path.connections)):
-            if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < self.cell_size/2:
+            if dist_real_to_coord((e.x, e.y), self.path.connections[i][0]) < CELL/2:
                 self.visual_connections = self.visual_connections[:i]
                 break
         self.draw()

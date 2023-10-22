@@ -4,12 +4,10 @@ from threading import Thread
 
 from playsound import playsound
 
+import levels
 from rules import *
 from board import *
-from solver import Path
 
-HEI = 7
-WID = 5
 CELL = 64
 
 PLAYING = "PLAYING"
@@ -26,8 +24,8 @@ class GameApp(tk.Frame):
         self.buttons = []
         self.bindings = {}
         self.cell_size = CELL
-        # self.state = PLAYING
-        self.state = DESIGNING
+        self.state = PLAYING
+        # self.state = DESIGNING
 
         from play import PlayerCanvas
         from design import DesignerCanvas
@@ -40,15 +38,9 @@ class GameApp(tk.Frame):
         self.master.unbind('<Return>', self.key[0])
         self.master.unbind('<ButtonRelease-3>', self.key[1])
 
-        domain = random_domain_path(WID, HEI, [])
+        domain, rules, starts, wh = levels.level(0, self.level)
 
-        rules = [EdgesGreaterThanRule(12), CellExactlyNVertex((3, 1), 2),
-                 EdgeExactlyOneVertex((3, 0), (3, 1)), CellExactlyNEdge((1, 4), 3),
-                 IncludeVertex((1, 4)), IncludeEdge((2, 3), (2, 4)),
-                 FinishVertex((3, 3)), GroupCell((0, 1), 2), GroupCell((3, 5), 1),
-                 ColorCell((1, 5)), ColorCell((3, 0), color="steel blue")]
-
-        self.board = self.board_class(board=Board(*domain, rules, [(0, 0), (3, 5)]), app=self, wr=(WID, HEI))
+        self.board = self.board_class(board=Board(*domain, rules, starts), app=self, wr=wh)
 
         self.level += 1
 

@@ -33,7 +33,6 @@ class DesignerCanvas(tk.Canvas):
 
 
     def hover_bindings(self):
-
         pass
 
     def add_rule(self, e):
